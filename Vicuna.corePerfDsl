@@ -54,14 +54,11 @@ Resource {
   V_ALU_Unpacker        (packUnpack),
   V_ALU                 (vectorAluModel),
   V_ALU_RegWriter,
-  V_ALU_Vreg_Signaller  (32),
   V_ALU_Packer          (packUnpack),
   V_Divider             (vectorDividerModel),
   V_Divider_RegWriter,
   V_LSU_Load            (vectorMemModel),
   V_LSU_RegWriter,
-  V_LSU_Store           (vectorStoreModel),
-  V_LSU_Vreg_Signaller  (vectorMemVregSignal),
   V_LSU_MemArbiter_Signaller,
   V_LSU_Packer          (packUnpack),
   V_LSU_Fifo            (9)
@@ -136,7 +133,6 @@ Microaction {
 /* uA Vector EX */
 Microaction {
   // Short Arithmetic
-  uA_V_EX_ALU_Vreg_Signal   (V_ALU_Vreg_Signaller -> Vd),
   uA_V_EX_ALU_Use           (V_ALU),
   uA_V_EX_ALU_SetGroup      (V_ALU_RegWriter -> VdGroupAlu),
   uA_V_EX_Divider_Use       (V_Divider),
@@ -145,11 +141,9 @@ Microaction {
   uA_V_EX_Pack              (V_ALU_Packer),
   // LSU/Long Arithmetic
   uA_V_LSU_Require_Free_LSU   (XifSignalNext),
-  uA_V_LSU_Vreg_Signal        (V_LSU_Vreg_Signaller -> Vd),
   uA_V_LSU_MemArbiter_Signal  (V_LSU_MemArbiter_Signaller -> MemArbiterSignal),
   uA_V_LSU_Load_SetGroup       (V_LSU_RegWriter -> VdGroupLoad),
   uA_V_LSU_Mem                (V_LSU_Load -> XifSignal),
-  uA_V_LSU_Store              (V_LSU_Store -> XifSignal),
   uA_V_LSU_Shift_Fifo         (V_LSU_Fifo),
   uA_V_EX_Req_Xif_Signal      (XifSignalNext)
 }
@@ -201,8 +195,7 @@ Stage {
   V_EX_ALU_Op_substage (uA_V_EX_ALU_Use,
                         uA_V_EX_ALU_SetGroup,
                         uA_V_EX_Divider_Use,
-                        uA_V_EX_Divider_SetGroup,
-                        uA_V_EX_ALU_Vreg_Signal),
+                        uA_V_EX_Divider_SetGroup),
   V_EX_ALU_Pack_substage (uA_V_EX_Pack),
 
   // LSU/Long Arithmetic Subpipeline
@@ -210,8 +203,6 @@ Stage {
   V_EX_LSU_substage_last (uA_V_LSU_Require_Free_LSU),
   V_EX_LSU_substage_mem  (uA_V_LSU_Mem,
                           uA_V_LSU_Load_SetGroup,
-                          uA_V_LSU_Store,
-                          uA_V_LSU_Vreg_Signal,
                           uA_V_EX_Req_Xif_Signal,
                           uA_V_LSU_MemArbiter_Signal)
 }
@@ -267,7 +258,7 @@ Pipeline Parallel_pipeline (Scalar_pipeline | Vector_pipeline | Result_pipeline)
 Pipeline Vicuna_pipeline (IF_stage -> ID_stage -> Parallel_pipeline)
 
 /************************************* External Models *************************************/
-TraceValue {rs1, rs2, rd, pc, brTarget, rs2_data, vtype, vl, vs1, vs2, vs3, vd, width}
+TraceValue {rs1, rs2, rd, pc, brTarget, rs2_data, vtype, vl, vs1, vs2, vs3, vd, lsWidth, isWidening}
 
 ConnectorModel regModel (
   link : "models/common/StandardRegisterModel.h"
@@ -278,7 +269,7 @@ ConnectorModel regModel (
 
 ConnectorModel vectorRegModel (
   link : "models/Vicuna/VectorRegisterModel.h"
-  trace : {vs1, vs2, vs3, vd, vtype, width}
+  trace : {vs1, vs2, vs3, vd, vtype, lsWidth, isWidening}
   connectorIn : {Vd, VdGroupDivider, VdGroupAlu, VdGroupLoad}
   connectorOut : {Vs1, Vs2, Vs3, Vd, MaxVdGroup}
 )
@@ -310,22 +301,12 @@ ResourceModel divider_u (
 
 ResourceModel vectorMemModel (
   link: "models/Vicuna/VectorMemModel.h"
-  trace: {vtype, vl, width}
-)
-
-ResourceModel vectorStoreModel (
-  link: "models/Vicuna/VectorStoreModel.h"
-  trace: {vtype, vl, width}
-)
-
-ResourceModel vectorMemVregSignal (
-  link: "models/Vicuna/VectorMemVregSignal.h"
-  trace: {vtype, width}
+  trace: {vtype, vl, lsWidth}
 )
 
 ResourceModel vectorAluModel (
   link: "models/Vicuna/VectorAluModel.h"
-  trace: vtype
+  trace: {vtype, isWidening}
 )
 
 ResourceModel vectorDividerModel (
@@ -361,15 +342,11 @@ InstrGroup {
   V_Div_vx (vdiv_vx, vdivu_vx, vremu_vx, vrem_vx),
 
   // ALU op, target vd, source imm
-  V_Arith_v_i (vmv_v_i),
+  V_ALU_v_i (vmv_v_i),
 
-  V_Arith_vv (
+  V_ALU_vv (
     vadd_vv,
     vsub_vv,
-    vwaddu_vv,
-    vwsubu_vv,
-    vwadd_vv,
-    vwsub_vv,
     vadc_vvm,
     vmadc_vv,
     vsbc_vvm,
@@ -420,14 +397,21 @@ InstrGroup {
     vrgatherei16_vv
   ),
 
-  V_Arith_vx (
+  V_ALU_Widening_vv (
+    vwaddu_vv,
+    vwsubu_vv,
+    vwadd_vv,
+    vwsub_vv,
+    vwaddu_w_vv,
+    vwsubu_w_vv,
+    vwadd_w_vv,
+    vwsub_w_vv
+  ),
+
+  V_ALU_vx (
     vadd_vx,
     vsub_vx,
     vrsub_vx,
-    vwaddu_vx,
-    vwsubu_vx,
-    vwadd_vx,
-    vwsub_vx,
     vadc_vxm,
     vmadc_vx,
     vsbc_vxm,
@@ -483,7 +467,18 @@ InstrGroup {
     vslide1down_vx
   ),
 
-  V_Arith_vi (
+  V_ALU_Widening_vx (
+    vwaddu_vx,
+    vwsubu_vx,
+    vwadd_vx,
+    vwsub_vx,
+    vwaddu_w_vx,
+    vwsubu_w_vx,
+    vwadd_w_vx,
+    vwsub_w_vx
+  ),
+
+  V_ALU_vi (
     vadd_vi,
     vrsub_vi,
     vadc_vim,
@@ -568,97 +563,131 @@ MicroactionMapping {
                   uA_R_SIG_Req_Xif_Signal,
                   uA_R_RET_Retire},
 
-  V_Arith_v_i :  {/* shared */
-                  uA_ID_Decode,
-                  /* vector */
-                  uA_V_DISP_Req_MaxVdGroup,
-                  uA_V_DISP_Dispatch,
-                  uA_V_DISP_Req_Vset_Signal,
-                  uA_V_EX_Unpack,
-                  uA_V_EX_ALU_SetGroup,
-                  // uA_V_EX_ALU_Vreg_Signal,
-                  uA_V_EX_ALU_Use,
-                  uA_V_EX_Pack,
-                  uA_V_WB_Pass,
-                  uA_V_RES_Result,
-                  /* result queue */
-                  uA_R_SIG_Enqueue,
-                  uA_R_SIG_Req_Xif_Signal,
-                  uA_R_RET_Retire},
+  V_ALU_v_i :  {/* shared */
+                uA_ID_Decode,
+                /* vector */
+                uA_V_DISP_Req_MaxVdGroup,
+                uA_V_DISP_Dispatch,
+                uA_V_DISP_Req_Vset_Signal,
+                uA_V_EX_Unpack,
+                uA_V_EX_ALU_SetGroup,
+                uA_V_EX_ALU_Use,
+                uA_V_EX_Pack,
+                uA_V_WB_Pass,
+                uA_V_RES_Result,
+                /* result queue */
+                uA_R_SIG_Enqueue,
+                uA_R_SIG_Req_Xif_Signal,
+                uA_R_RET_Retire},
 
-  V_Arith_vv :   {/* shared */
-                  uA_ID_Decode,
-                  /* vector */
-                  uA_V_DISP_Req_MaxVdGroup,
-                  uA_V_DISP_Req_Vs1, 
-                  uA_V_DISP_Req_Vs2,
-                  uA_V_DISP_Req_Vset_Signal,
-                  uA_V_DISP_Dispatch,
-                  uA_V_EX_Unpack,
-                  uA_V_EX_ALU_SetGroup,
-                  // uA_V_EX_ALU_Vreg_Signal,
-                  uA_V_EX_ALU_Use,
-                  uA_V_EX_Pack,
-                  uA_V_WB_Pass,
-                  uA_V_RES_Result,
-                  /* result queue */
-                  uA_R_SIG_Enqueue,
-                  uA_R_SIG_Req_Xif_Signal,
-                  uA_R_RET_Retire},
+  V_ALU_vv :   {/* shared */
+                uA_ID_Decode,
+                /* vector */
+                uA_V_DISP_Req_MaxVdGroup,
+                uA_V_DISP_Req_Vs1, 
+                uA_V_DISP_Req_Vs2,
+                uA_V_DISP_Req_Vset_Signal,
+                uA_V_DISP_Dispatch,
+                uA_V_EX_Unpack,
+                uA_V_EX_ALU_SetGroup,
+                uA_V_EX_ALU_Use,
+                uA_V_EX_Pack,
+                uA_V_WB_Pass,
+                uA_V_RES_Result,
+                /* result queue */
+                uA_R_SIG_Enqueue,
+                uA_R_SIG_Req_Xif_Signal,
+                uA_R_RET_Retire},
 
-  V_Arith_vx :   {/* shared */
-                  uA_ID_Decode,
-                  uA_ID_Req_SReg_A,
-                  /* vector */
-                  uA_V_DISP_Req_MaxVdGroup,
-                  uA_V_DISP_Req_Vs2,
-                  uA_V_DISP_Req_Vset_Signal,
-                  uA_V_DISP_Dispatch,
-                  uA_V_EX_Unpack,
-                  uA_V_EX_ALU_SetGroup,
-                  // uA_V_EX_ALU_Vreg_Signal,
-                  uA_V_EX_ALU_Use  ,
-                  uA_V_EX_Pack,
-                  uA_V_WB_Pass,
-                  uA_V_RES_Result,
-                  /* result queue */
-                  uA_R_SIG_Enqueue,
-                  uA_R_SIG_Req_Xif_Signal,
-                  uA_R_RET_Retire},
+  // Same as V_ALU_vv, but reiterated, since it needs to double LMUL
+  V_ALU_Widening_vv : {/* shared */
+                       uA_ID_Decode,
+                       /* vector */
+                       uA_V_DISP_Req_MaxVdGroup,
+                       uA_V_DISP_Req_Vs1, 
+                       uA_V_DISP_Req_Vs2,
+                       uA_V_DISP_Req_Vset_Signal,
+                       uA_V_DISP_Dispatch,
+                       uA_V_EX_Unpack,
+                       uA_V_EX_ALU_SetGroup,
+                       uA_V_EX_ALU_Use,
+                       uA_V_EX_Pack,
+                       uA_V_WB_Pass,
+                       uA_V_RES_Result,
+                       /* result queue */
+                       uA_R_SIG_Enqueue,
+                       uA_R_SIG_Req_Xif_Signal,
+                       uA_R_RET_Retire},
 
-  V_Arith_vi :   {/* shared */
-                  uA_ID_Decode,
-                  /* vector */
-                  uA_V_DISP_Req_MaxVdGroup,
-                  uA_V_DISP_Req_Vs2,
-                  uA_V_DISP_Req_Vset_Signal,
-                  uA_V_DISP_Dispatch,
-                  uA_V_EX_Unpack,
-                  uA_V_EX_ALU_SetGroup,
-                  // uA_V_EX_ALU_Vreg_Signal,
-                  uA_V_EX_ALU_Use  ,
-                  uA_V_EX_Pack,
-                  uA_V_WB_Pass,
-                  uA_V_RES_Result,
-                  /* result queue */
-                  uA_R_SIG_Enqueue,
-                  uA_R_SIG_Req_Xif_Signal,
-                  uA_R_RET_Retire},
+  V_ALU_vx :   {/* shared */
+                uA_ID_Decode,
+                uA_ID_Req_SReg_A,
+                /* vector */
+                uA_V_DISP_Req_MaxVdGroup,
+                uA_V_DISP_Req_Vs2,
+                uA_V_DISP_Req_Vset_Signal,
+                uA_V_DISP_Dispatch,
+                uA_V_EX_Unpack,
+                uA_V_EX_ALU_SetGroup,
+                uA_V_EX_ALU_Use  ,
+                uA_V_EX_Pack,
+                uA_V_WB_Pass,
+                uA_V_RES_Result,
+                /* result queue */
+                uA_R_SIG_Enqueue,
+                uA_R_SIG_Req_Xif_Signal,
+                uA_R_RET_Retire},
 
-  V_Load :       {uA_ID_Decode,
-                  uA_ID_Req_SReg_A,
-                  uA_V_DISP_Req_MaxVdGroup,
-                  uA_V_DISP_Dispatch,
-                  uA_V_DISP_Req_Vset_Signal,
-                  uA_V_LSU_Shift_Fifo,
-                  uA_V_LSU_Require_Free_LSU,
-                  uA_V_LSU_Load_SetGroup,
-                  // uA_V_LSU_Vreg_Signal,
-                  uA_V_LSU_MemArbiter_Signal,
-                  uA_V_LSU_Mem,
-                  uA_V_WB_Memory_R,
-                  uA_V_RES_Result
-                  },
+  V_ALU_Widening_vx : {/* shared */
+                       uA_ID_Decode,
+                       uA_ID_Req_SReg_A,
+                       /* vector */
+                       uA_V_DISP_Req_MaxVdGroup,
+                       uA_V_DISP_Req_Vs2,
+                       uA_V_DISP_Req_Vset_Signal,
+                       uA_V_DISP_Dispatch,
+                       uA_V_EX_Unpack,
+                       uA_V_EX_ALU_SetGroup,
+                       uA_V_EX_ALU_Use  ,
+                       uA_V_EX_Pack,
+                       uA_V_WB_Pass,
+                       uA_V_RES_Result,
+                       /* result queue */
+                       uA_R_SIG_Enqueue,
+                       uA_R_SIG_Req_Xif_Signal,
+                       uA_R_RET_Retire},
+
+  V_ALU_vi :   {/* shared */
+                uA_ID_Decode,
+                /* vector */
+                uA_V_DISP_Req_MaxVdGroup,
+                uA_V_DISP_Req_Vs2,
+                uA_V_DISP_Req_Vset_Signal,
+                uA_V_DISP_Dispatch,
+                uA_V_EX_Unpack,
+                uA_V_EX_ALU_SetGroup,
+                uA_V_EX_ALU_Use,
+                uA_V_EX_Pack,
+                uA_V_WB_Pass,
+                uA_V_RES_Result,
+                /* result queue */
+                uA_R_SIG_Enqueue,
+                uA_R_SIG_Req_Xif_Signal,
+                uA_R_RET_Retire},
+
+  V_Load :     {uA_ID_Decode,
+                uA_ID_Req_SReg_A,
+                uA_V_DISP_Req_MaxVdGroup,
+                uA_V_DISP_Dispatch,
+                uA_V_DISP_Req_Vset_Signal,
+                uA_V_LSU_Shift_Fifo,
+                uA_V_LSU_Require_Free_LSU,
+                uA_V_LSU_Load_SetGroup,
+                uA_V_LSU_MemArbiter_Signal,
+                uA_V_LSU_Mem,
+                uA_V_WB_Memory_R,
+                uA_V_RES_Result
+                },
 
   V_Store :      {uA_ID_Decode, 
                   uA_ID_Req_SReg_A,
@@ -785,15 +814,15 @@ TraceValueMapping {
   },
 
   V_LS_32 : {
-    width = "32"
+    lsWidth = "32"
   },
 
   V_LS_16 : {
-    width = "16"
+    lsWidth = "16"
   },
 
   V_LS_8 : {
-    width = "8"
+    lsWidth = "8"
   },
 
   V_Load : {
@@ -830,33 +859,55 @@ TraceValueMapping {
     vtype = "$csr{0xC21}"
   },
 
-  V_Arith_v_i : {
+  V_ALU_v_i : {
     vd = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
-    vtype = "$csr{0xC21}"
+    vtype = "$csr{0xC21}",
+    isWidening = "0"
   },
 
-  V_Arith_vv : {
+  V_ALU_vv : {
     vs1 = "$bitfield{vs1}",
     vs2 = "$bitfield{vs2}",
     vd  = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
-    vtype = "$csr{0xC21}"
+    vtype = "$csr{0xC21}",
+    isWidening = "0"
   },
 
-  V_Arith_vx : {
+  V_ALU_Widening_vv : {
+    vs1 = "$bitfield{vs1}",
+    vs2 = "$bitfield{vs2}",
+    vd  = "$bitfield{vd}",
+    // VTYPE CSR Address = 0xC21
+    vtype = "$csr{0xC21}",
+    isWidening = "1"
+  },
+
+  V_ALU_vx : {
     vs2 = "$bitfield{vs2}",
     rs1 = "$bitfield{rs1}",
     vd  = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
-    vtype = "$csr{0xC21}"
+    vtype = "$csr{0xC21}",
+    isWidening = "0"
   },
 
-  V_Arith_vi : {
+  V_ALU_Widening_vx : {
+    vs2 = "$bitfield{vs2}",
+    rs1 = "$bitfield{rs1}",
+    vd  = "$bitfield{vd}",
+    // VTYPE CSR Address = 0xC21
+    vtype = "$csr{0xC21}",
+    isWidening = "1"
+  },
+
+  V_ALU_vi : {
     vs2 = "$bitfield{vs2}",
     vd  = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
-    vtype = "$csr{0xC21}"
+    vtype = "$csr{0xC21}",
+    isWidening = "0"
   },
 
   V_vsetvl : {
@@ -884,7 +935,6 @@ CorePerfModel Vicuna (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorStoreModel,
     vectorAluModel,
     vectorDividerModel, 
     vectorSignaller,
