@@ -24,7 +24,7 @@ def gen_fifo(stage_name: str, subpipe_name: str, depth: int, end_action: str) ->
 
     fifo_stages = "Stage {\n"
     for i in range(depth - 1):
-        fifo_stages += f"  {subpipe_name}_r{i} ({microactions[i]}),\n"
+        fifo_stages += f"  {subpipe_name}_r{i}{f" [capacity: {depth}]" if i == 0 else ""} ({microactions[i]}),\n"
     fifo_stages += f"  {subpipe_name}_r{depth - 1} ({end_action})\n"
     fifo_stages += "}\n\n"
 
