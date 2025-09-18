@@ -4,7 +4,9 @@ import pathlib
 import sys
 
 
-def gen_fifo(stage_name: str, subpipe_name: str, depth: int, end_action: str) -> str:
+def gen_fifo(
+    stage_name: str, subpipe_name: str, depth: int, end_action: str | None = None
+) -> str:
     assert depth >= 1
     resources = [f"{stage_name}_Shifter_{i}" for i in range(depth)]
     resources_instance = "Resource {\n"
@@ -25,7 +27,7 @@ def gen_fifo(stage_name: str, subpipe_name: str, depth: int, end_action: str) ->
     fifo_stages = "Stage {\n"
     for i in range(depth - 1):
         fifo_stages += f"  {subpipe_name}_r{i}{f" [capacity: {depth}]" if i == 0 else ""} ({microactions[i]}),\n"
-    fifo_stages += f"  {subpipe_name}_r{depth - 1} ({end_action})\n"
+    fifo_stages += f"  {subpipe_name}_r{depth - 1} ({microactions[depth - 1]}{f", {end_action}" if end_action else ""})\n"
     fifo_stages += "}\n\n"
 
     fifo_subpipe = f"Pipeline {subpipe_name} (\n"
@@ -36,9 +38,6 @@ def gen_fifo(stage_name: str, subpipe_name: str, depth: int, end_action: str) ->
     containing_stage = (
         f"Stage {{{stage_name} [capacity: {depth}] ({subpipe_name})}}\n\n"
     )
-    # print(fifo_stages)
-    # print(fifo_subpipe)
-    # print(containing_stage)
     return (
         resources_instance
         + microactions_instance
@@ -48,13 +47,19 @@ def gen_fifo(stage_name: str, subpipe_name: str, depth: int, end_action: str) ->
     )
 
 
-def gen_shifts(fifo_name: str, fifo_dict: dict, end: bool) -> str:
+def gen_shifts(fifo_name: str, fifo_dict: dict, end: bool, use_end_action: bool) -> str:
     depth = fifo_dict[fifo_name][0]
     end_action = fifo_dict[fifo_name][1]
     shifts = ""
     for i in range(depth - 1):
         shifts += f"    uA_{fifo_name}_Shift_{i},\n"
-    shifts += f"    {end_action}{",\n" if not end else "\n}\n\n"}"
+    if end_action and use_end_action:
+        shifts += f"    uA_{fifo_name}_Shift_{depth - 1},\n"
+        shifts += f"    {end_action}{",\n" if not end else "\n}\n\n"}"
+    else:
+        shifts += (
+            f"    uA_{fifo_name}_Shift_{depth - 1}{",\n" if not end else "\n}\n\n"}"
+        )
     return shifts
 
 
@@ -63,7 +68,7 @@ def main(infile_path: pathlib.Path, outfile_path: pathlib.Path):
         outfile_path, "w", encoding="utf-8"
     ) as outfile:
 
-        fifo_dict: dict[str, tuple[int, str]] = {}
+        fifo_dict: dict[str, tuple[int, str | None]] = {}
         for line in infile:
             if "@FIFO" in line and "@SHIFT" in line:
                 print("Error both fifo and shift in same line")
@@ -74,22 +79,25 @@ def main(infile_path: pathlib.Path, outfile_path: pathlib.Path):
                 depth = int(split_line[1])
                 stage_name = split_line[2]
                 subpipe_name = split_line[3]
-                end_action = (
-                    f"uA_{stage_name}_Shift_{depth-1}"
-                    if len(split_line) < 5
-                    else split_line[4]
-                )
+                end_action = None if len(split_line) < 5 else split_line[4]
                 fifo_description = gen_fifo(stage_name, subpipe_name, depth, end_action)
                 fifo_dict[stage_name] = (depth, end_action)
                 outfile.write(fifo_description)
-            # Format @SHIFT <STAGE_NAME> [end]
+            # Format @SHIFT <STAGE_NAME> [end] [end_action]
             elif "@SHIFT" in line:
                 split_line = line.strip().split(" ")
                 fifo_name = split_line[1]
                 end = False
-                if len(split_line) > 2 and split_line[2] == "end":
-                    end = True
-                fifo_shifts = gen_shifts(fifo_name, fifo_dict, end)
+                use_end_action = False
+                if len(split_line) > 2:
+                    for token in split_line[2:]:
+                        if token == "end":
+                            end = True
+                        elif token == "end_action":
+                            use_end_action = True
+                        else:
+                            print(f"Illegal token {token}")
+                fifo_shifts = gen_shifts(fifo_name, fifo_dict, end, use_end_action)
                 outfile.write(fifo_shifts)
             else:
                 outfile.write(line)
