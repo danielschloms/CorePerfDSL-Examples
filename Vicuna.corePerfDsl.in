@@ -915,6 +915,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
+    uA_WB_Req_LsuRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage end_action
@@ -926,7 +927,7 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack,
+    uA_V_EX_Pack_LsuRetireSignal,
     uA_V_RES_XifSignal
   },
 
@@ -936,6 +937,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
+    uA_WB_Req_LsuRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage end_action
@@ -947,7 +949,7 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack,
+    uA_V_EX_Pack_LsuRetireSignal,
     uA_V_RES_XifSignal
   },
 
@@ -956,6 +958,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
+    uA_WB_Req_LsuRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage
@@ -967,7 +970,7 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack,
+    uA_V_EX_Pack_LsuRetireSignal,
     uA_V_RES_XifSignal
   },
 
@@ -977,6 +980,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
+    uA_WB_Req_LsuRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage
@@ -988,7 +992,7 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack,
+    uA_V_EX_Pack_LsuRetireSignal,
     uA_V_RES_XifSignal
   },
 
