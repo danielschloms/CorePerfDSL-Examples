@@ -49,7 +49,8 @@ Connector {
   XifSignalNext,
   VsetSignal,
   MemArbiterSignal,
-  LsuFreeSignal
+  LsuFreeSignal,
+  LsuRetireSignal
 }
 
 Resource {PCGen, Decoder, JumpDecoder}
@@ -154,10 +155,11 @@ Microaction {
 
 /* uA Scalar Writeback */
 Microaction {
-  uA_WB_Memory_R  (DPort_R -> Xd),
-  uA_WB_Memory_W  (DPort_W),
-  uA_WB_Nop       (WB_Nop),
-  uA_WB_XifSignal (WB_Signaller -> XifSignal)
+  uA_WB_Memory_R            (DPort_R -> Xd),
+  uA_WB_Memory_W            (DPort_W),
+  uA_WB_Nop                 (WB_Nop),
+  uA_WB_XifSignal           (WB_Signaller -> XifSignal),
+  uA_WB_Req_LsuRetireSignal (LsuRetireSignal)
 }
 
 /* uA Vector Instruction Queue */
@@ -184,7 +186,7 @@ Microaction {
 /* uA Vector EX */
 Microaction {
   uA_V_EX_Pack                  (V_EX_Packer),
-  uA_V_EX_Pack_Signalling       (V_EX_Packer -> XifSignal),
+  uA_V_EX_Pack_LsuRetireSignal  (V_EX_Packer -> LsuRetireSignal),
   uA_V_EX_Pack_Vd               (V_EX_Packer_Vd -> Vd),
   uA_V_EX_Unpack_ALU_Pipe       (V_EX_Unpacker_ALU_Pipe),
   uA_V_EX_Unpack_LSU_Pipe       (V_EX_Unpacker_LSU_Pipe),
@@ -242,7 +244,8 @@ Stage {
     uA_WB_Memory_R,
     uA_WB_Memory_W,
     uA_WB_Nop,
-    uA_WB_XifSignal
+    uA_WB_XifSignal,
+    uA_WB_Req_LsuRetireSignal
   )        
 }
 Pipeline Scalar_pipeline (EX_stage -> WB_stage)
@@ -308,7 +311,7 @@ Stage {
   V_EX_Pack_substage (
     uA_V_EX_Pack,
     uA_V_EX_Pack_Vd,
-    uA_V_EX_Pack_Signalling
+    uA_V_EX_Pack_LsuRetireSignal
   )
 }
 
@@ -395,10 +398,10 @@ ConnectorModel vectorRegModel (
 
 ConnectorModel vectorSignaller (
   link : "models/Vicuna/VectorSignaller.h"
-  connectorIn : {XifSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal}
+  connectorIn : {XifSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, LsuRetireSignal}
   // XifSignalNext adds 1 cycle of delay, 
   // since most instructions actually need the cycle after the result signal
-  connectorOut : {XifSignal, SyncSignal, XifSignalNext, VsetSignal, MemArbiterSignal, LsuFreeSignal}
+  connectorOut : {XifSignal, SyncSignal, XifSignalNext, VsetSignal, MemArbiterSignal, LsuFreeSignal, LsuRetireSignal}
 )
 
 ConnectorModel staBranchPredModel (
