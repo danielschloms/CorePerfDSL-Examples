@@ -5,7 +5,11 @@ import sys
 
 
 def gen_fifo(
-    stage_name: str, subpipe_name: str, depth: int, end_action: str | None = None
+    stage_name: str,
+    subpipe_name: str,
+    depth: int,
+    capacity: int,
+    end_action: str | None = None,
 ) -> str:
     assert depth >= 1
     resources = [f"{stage_name}_Shifter_{i}" for i in range(depth)]
@@ -26,7 +30,7 @@ def gen_fifo(
 
     fifo_stages = "Stage {\n"
     for i in range(depth - 1):
-        fifo_stages += f"  {subpipe_name}_r{i}{f" [capacity: {depth}]" if i == 0 else ""} ({microactions[i]}),\n"
+        fifo_stages += f"  {subpipe_name}_r{i}{f" [capacity: {capacity}]" if i == 0 else ""} ({microactions[i]}),\n"
     fifo_stages += f"  {subpipe_name}_r{depth - 1} ({microactions[depth - 1]}{f", {end_action}" if end_action else ""})\n"
     fifo_stages += "}\n\n"
 
@@ -36,7 +40,7 @@ def gen_fifo(
     fifo_subpipe += ")\n\n"
 
     containing_stage = (
-        f"Stage {{{stage_name} [capacity: {depth}] ({subpipe_name})}}\n\n"
+        f"Stage {{{stage_name} [capacity: {capacity}] ({subpipe_name})}}\n\n"
     )
     return (
         resources_instance
@@ -77,10 +81,12 @@ def main(infile_path: pathlib.Path, outfile_path: pathlib.Path):
             if "@FIFO" in line:
                 split_line = line.strip().split(" ")
                 depth = int(split_line[1])
-                stage_name = split_line[2]
-                subpipe_name = split_line[3]
-                end_action = None if len(split_line) < 5 else split_line[4]
-                fifo_description = gen_fifo(stage_name, subpipe_name, depth, end_action)
+                capacity = int(split_line[2])
+                stage_name = split_line[3]
+                subpipe_name = split_line[4]
+                end_action = None if len(split_line) < 6 else split_line[5]
+                # end_actions = None if len(split_line) < 6 else split_line[5:]
+                fifo_description = gen_fifo(stage_name, subpipe_name, depth, capacity, end_action)
                 fifo_dict[stage_name] = (depth, end_action)
                 outfile.write(fifo_description)
             # Format @SHIFT <STAGE_NAME> [end] [end_action]

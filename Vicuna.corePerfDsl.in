@@ -248,9 +248,9 @@ Stage {
 Pipeline Scalar_pipeline (EX_stage -> WB_stage)
 
 /* Vector EX substages */
-// (at)FIFO <depth> <stage name> <subpipe name> [<uA at end>]
-@FIFO 4 V_EX_LSU_FIFO_substage V_EX_LSU_FIFO_subpipeline uA_V_EX_LSU_Require_Free_LSU
-@FIFO 2 V_IQ_stage V_IQ_subpipeline uA_V_IQ_Req_MaxVdGroup
+// (at)FIFO <depth> <capacity> <stage name> <subpipe name> [<uA at end>]
+@FIFO 4 1 V_EX_LSU_FIFO_substage V_EX_LSU_FIFO_subpipeline uA_V_EX_LSU_Require_Free_LSU
+@FIFO 2 2 V_IQ_stage V_IQ_subpipeline uA_V_IQ_Req_MaxVdGroup
 
 Stage {
   V_EX_ALU_Op_substage (
