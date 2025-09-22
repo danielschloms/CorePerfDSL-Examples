@@ -44,13 +44,13 @@ Connector {
 
 // Signaller
 Connector {
-  XifSignal,
+  XifReturnSignal,
+  XifCommitSignal,
   SyncSignal,
-  XifSignalNext,
   VsetSignal,
   MemArbiterSignal,
   LsuFreeSignal,
-  LsuRetireSignal
+  WbRetireSignal
 }
 
 Resource {PCGen, Decoder, JumpDecoder}
@@ -124,12 +124,12 @@ Microaction {
 
 /* uA Decode */
 Microaction {
-  uA_ID_Decode         (Decoder),
-  uA_ID_JumpDecode     (JumpDecoder -> Pc_np),
-  uA_ID_JumpDecodeReg  (Xa -> JumpDecoder -> Pc_np),
-  uA_ID_Req_SReg_A     (Xa),
-  uA_ID_Req_SReg_B     (Xb),
-  uA_ID_Req_XifSignal  (XifSignal),
+  uA_ID_Decode                (Decoder),
+  uA_ID_JumpDecode            (JumpDecoder -> Pc_np),
+  uA_ID_JumpDecodeReg         (Xa -> JumpDecoder -> Pc_np),
+  uA_ID_Req_SReg_A            (Xa),
+  uA_ID_Req_SReg_B            (Xb),
+  uA_ID_Req_XifReturnSignal   (XifReturnSignal),
   // WAW Vector
   uA_ID_Req_MaxVdGroup (MaxVdGroup)
 }
@@ -138,9 +138,8 @@ Microaction {
 Microaction {
   uA_EX_Vset                  (Vset -> Xd),
   uA_EX_Nop                   (EX_Nop),
-  uA_EX_XifSignal             (EX_Signaller -> XifSignal),
-  uA_EX_Req_XifSignalNext     (XifSignalNext),
-  uA_EX_Req_XifSignal         (XifSignal),
+  uA_EX_XifReturnSignal       (EX_Signaller -> XifReturnSignal),
+  uA_EX_Req_XifReturnSignal   (XifReturnSignal),
   uA_EX_Req_MemArbiter_Signal (MemArbiterSignal),
   uA_EX_Req_SyncSignal        (SyncSignal),
   uA_EX_LSU                   (EX_LSU),
@@ -158,8 +157,8 @@ Microaction {
   uA_WB_Memory_R            (DPort_R -> Xd),
   uA_WB_Memory_W            (DPort_W),
   uA_WB_Nop                 (WB_Nop),
-  uA_WB_XifSignal           (WB_Signaller -> XifSignal),
-  uA_WB_Req_LsuRetireSignal (LsuRetireSignal)
+  uA_WB_XifReturnSignal           (WB_Signaller -> XifReturnSignal),
+  uA_WB_Req_WbRetireSignal (WbRetireSignal)
 }
 
 /* uA Vector Instruction Queue */
@@ -186,7 +185,7 @@ Microaction {
 /* uA Vector EX */
 Microaction {
   uA_V_EX_Pack                  (V_EX_Packer),
-  uA_V_EX_Pack_LsuRetireSignal  (V_EX_Packer -> LsuRetireSignal),
+  uA_V_EX_Pack_WbRetireSignal  (V_EX_Packer -> WbRetireSignal),
   uA_V_EX_Pack_Vd               (V_EX_Packer_Vd -> Vd),
   uA_V_EX_Unpack_ALU_Pipe       (V_EX_Unpacker_ALU_Pipe),
   uA_V_EX_Unpack_LSU_Pipe       (V_EX_Unpacker_LSU_Pipe),
@@ -217,7 +216,7 @@ Microaction {
   uA_V_RES_Nop            (V_RES_Nop),
   uA_V_RES_Return_Result  (V_RES_Return_Result -> Xd),
   uA_V_RES_SyncSignal     (V_RES_Signaller -> SyncSignal),
-  uA_V_RES_XifSignal      (V_RES_Signaller -> XifSignal)
+  uA_V_RES_XifReturnSignal      (V_RES_Signaller -> XifReturnSignal)
 }
 
 /************************************ Stages & Pipeline ************************************/
@@ -235,8 +234,7 @@ Stage {
     uA_DIV, 
     uA_DIVU, 
     uA_EX_Nop,
-    uA_EX_Req_XifSignalNext,
-    uA_EX_Req_XifSignal,
+    uA_EX_Req_XifReturnSignal,
     uA_EX_Vset
   ),
 
@@ -244,8 +242,8 @@ Stage {
     uA_WB_Memory_R,
     uA_WB_Memory_W,
     uA_WB_Nop,
-    uA_WB_XifSignal,
-    uA_WB_Req_LsuRetireSignal
+    uA_WB_XifReturnSignal,
+    uA_WB_Req_WbRetireSignal
   )        
 }
 Pipeline Scalar_pipeline (EX_stage -> WB_stage)
@@ -311,7 +309,7 @@ Stage {
   V_EX_Pack_substage (
     uA_V_EX_Pack,
     uA_V_EX_Pack_Vd,
-    uA_V_EX_Pack_LsuRetireSignal
+    uA_V_EX_Pack_WbRetireSignal
   )
 }
 
@@ -338,7 +336,7 @@ Stage {
     uA_V_RES_Nop,
     uA_V_RES_Return_Result,
     uA_V_RES_SyncSignal,
-    uA_V_RES_XifSignal
+    uA_V_RES_XifReturnSignal
   )
 }
 Pipeline Vector_pipeline (V_IQ_stage -> V_DISP_stage -> V_EX_stage -> V_RES_stage)
@@ -398,10 +396,8 @@ ConnectorModel vectorRegModel (
 
 ConnectorModel vectorSignaller (
   link : "models/Vicuna/VectorSignaller.h"
-  connectorIn : {XifSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, LsuRetireSignal}
-  // XifSignalNext adds 1 cycle of delay, 
-  // since most instructions actually need the cycle after the result signal
-  connectorOut : {XifSignal, SyncSignal, XifSignalNext, VsetSignal, MemArbiterSignal, LsuFreeSignal, LsuRetireSignal}
+  connectorIn : {XifReturnSignal, XifCommitSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
+  connectorOut : {XifReturnSignal, XifCommitSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
 )
 
 ConnectorModel staBranchPredModel (
@@ -677,27 +673,27 @@ InstrGroup {
 
 MicroactionMapping {
   [ALL] :        {uA_IF_IFetch, uA_IF_PCGen},
-  Arith_Ra_Rb :  {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_ALU_RegUpdate, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Arith_Ra :     {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_ALU_RegUpdate, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Arith_X :      {uA_ID_Decode, uA_EX_ALU_RegUpdate, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Mul_Ra_Rb :    {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_MUL, uA_EX_Req_XifSignal, uA_WB_Nop},
-  MulH_Ra_Rb :   {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_MULH, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Div_Ra_Rb :    {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_DIV, uA_EX_Req_XifSignal, uA_WB_Nop},
-  DivU_Ra_Rb :   {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_DIVU, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Csr_Ra :       {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_CSR, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Csr_X :        {uA_ID_Decode, uA_EX_CSR, uA_EX_Req_XifSignal, uA_WB_Nop},
-  Store :        {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_Req_MemArbiter_Signal, uA_EX_LSU, uA_EX_Req_XifSignal, uA_WB_Memory_W},
-  Load :         {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_Req_MemArbiter_Signal, uA_EX_LSU, uA_EX_Req_XifSignal, uA_WB_Memory_R},
-  Branch_Ra_Rb : {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_ALU_Branch, uA_EX_Req_XifSignal, uA_WB_Nop},
-  jal :          {uA_ID_JumpDecode, uA_EX_ALU_RegUpdate, uA_EX_Req_XifSignal, uA_WB_Nop},
-  jalr :         {uA_ID_JumpDecodeReg, uA_EX_ALU_RegUpdate, uA_EX_Req_XifSignal, uA_WB_Nop},
+  Arith_Ra_Rb :  {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_ALU_RegUpdate, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Arith_Ra :     {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_ALU_RegUpdate, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Arith_X :      {uA_ID_Decode, uA_EX_ALU_RegUpdate, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Mul_Ra_Rb :    {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_MUL, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  MulH_Ra_Rb :   {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_MULH, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Div_Ra_Rb :    {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_DIV, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  DivU_Ra_Rb :   {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_DIVU, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Csr_Ra :       {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_CSR, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Csr_X :        {uA_ID_Decode, uA_EX_CSR, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  Store :        {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_Req_MemArbiter_Signal, uA_EX_LSU, uA_EX_Req_XifReturnSignal, uA_WB_Memory_W},
+  Load :         {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_Req_MemArbiter_Signal, uA_EX_LSU, uA_EX_Req_XifReturnSignal, uA_WB_Memory_R},
+  Branch_Ra_Rb : {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_ALU_Branch, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  jal :          {uA_ID_JumpDecode, uA_EX_ALU_RegUpdate, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
+  jalr :         {uA_ID_JumpDecodeReg, uA_EX_ALU_RegUpdate, uA_EX_Req_XifReturnSignal, uA_WB_Nop},
 
   V_Div_vv : {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs1,
@@ -716,8 +712,8 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs2,
@@ -735,8 +731,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs2,
@@ -753,8 +749,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_MaskReg,
@@ -771,8 +767,8 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vd,
@@ -805,8 +801,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs1, 
@@ -824,8 +820,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs1, 
@@ -843,8 +839,8 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs2,
@@ -861,8 +857,8 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs2,
@@ -878,8 +874,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs2,
@@ -895,8 +891,8 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     /* Scalar */
-    uA_EX_Req_XifSignal,
-    uA_WB_XifSignal,
+    uA_EX_Req_XifReturnSignal,
+    uA_WB_XifReturnSignal,
     /* Vector */
     @SHIFT V_IQ_stage end_action
     uA_V_DISP_Req_Vs1, 
@@ -915,7 +911,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
-    uA_WB_Req_LsuRetireSignal,
+    uA_WB_Req_WbRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage end_action
@@ -927,8 +923,8 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack_LsuRetireSignal,
-    uA_V_RES_XifSignal
+    uA_V_EX_Pack_WbRetireSignal,
+    uA_V_RES_XifReturnSignal
   },
 
   V_Load_Registers : {
@@ -937,7 +933,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
-    uA_WB_Req_LsuRetireSignal,
+    uA_WB_Req_WbRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage end_action
@@ -949,8 +945,8 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack_LsuRetireSignal,
-    uA_V_RES_XifSignal
+    uA_V_EX_Pack_WbRetireSignal,
+    uA_V_RES_XifReturnSignal
   },
 
   V_Store : {
@@ -958,7 +954,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
-    uA_WB_Req_LsuRetireSignal,
+    uA_WB_Req_WbRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage
@@ -970,8 +966,8 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack_LsuRetireSignal,
-    uA_V_RES_XifSignal
+    uA_V_EX_Pack_WbRetireSignal,
+    uA_V_RES_XifReturnSignal
   },
 
   V_Store_Registers : {
@@ -980,7 +976,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
-    uA_WB_Req_LsuRetireSignal,
+    uA_WB_Req_WbRetireSignal,
     uA_WB_Nop,
     /* Vector */
     @SHIFT V_IQ_stage
@@ -992,14 +988,14 @@ MicroactionMapping {
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
     uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_Pack_LsuRetireSignal,
-    uA_V_RES_XifSignal
+    uA_V_EX_Pack_WbRetireSignal,
+    uA_V_RES_XifReturnSignal
   },
 
   V_vsetivli : {
     /* Shared */
     uA_ID_Decode,
-    uA_ID_Req_XifSignal,
+    uA_ID_Req_XifReturnSignal,
     /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
@@ -1009,7 +1005,7 @@ MicroactionMapping {
     /* Shared */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    uA_ID_Req_XifSignal,
+    uA_ID_Req_XifReturnSignal,
     /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
@@ -1020,7 +1016,7 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_ID_Req_SReg_B,
-    uA_ID_Req_XifSignal,
+    uA_ID_Req_XifReturnSignal,
     /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
