@@ -335,7 +335,7 @@ Stage {
   //   uA_V_EX_Pack_Vd,
   //   uA_V_EX_Pack_WbRetireSignal
   // )
-  V_EX_stage [capacity: 2] (V_EX_ALU_subpipeline, V_EX_LSU_ELM_subpipeline)
+  V_EX_stage [capacity: 3] (V_EX_ALU_subpipeline, V_EX_LSU_ELM_subpipeline)
 }
 
 // Pipeline {
