@@ -46,6 +46,7 @@ Connector {
 Connector {
   XifResultSignal,
   XifCommitSignal,
+  XifIssueSignal,
   SyncSignal,
   VsetSignal,
   MemArbiterSignal,
@@ -126,7 +127,7 @@ Microaction {
   uA_ID_Req_SReg_A            (Xa),
   uA_ID_Req_SReg_B            (Xb),
   uA_ID_Req_XifResultSignal   (XifResultSignal),
-  uA_ID_XifCommitSignal       (ID_Signaller -> XifCommitSignal)
+  uA_ID_XifIssueSignal        (ID_Signaller -> XifIssueSignal)
 }
 
 /* uA Scalar Execute */
@@ -356,11 +357,15 @@ Resource {
 }
 
 Microaction {
-  uA_V_IQ_Queue (V_IQ_Queue)
+  uA_V_IQ_Queue               (V_IQ_Queue),
+  uA_V_IQ_Req_XifIssueSignal  (XifIssueSignal)
 }
 
 Stage {
-  V_IQ_stage [capacity: 2] (uA_V_IQ_Queue)
+  V_IQ_stage [capacity: 2] (
+    uA_V_IQ_Queue,
+    uA_V_IQ_Req_XifIssueSignal
+  )
 }
 
 
@@ -375,8 +380,8 @@ Stage {
     uA_ID_JumpDecodeReg,
     uA_ID_Req_SReg_A,
     uA_ID_Req_SReg_B,
-    uA_ID_XifCommitSignal,
-    uA_ID_Req_XifResultSignal
+    uA_ID_Req_XifResultSignal,
+    uA_ID_XifIssueSignal
   )
 }
 
@@ -424,8 +429,8 @@ ConnectorModel vectorRegModel (
 
 ConnectorModel vectorSignaller (
   link : "models/Vicuna/VectorSignaller.h"
-  connectorIn : {XifResultSignal, XifCommitSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
-  connectorOut : {XifResultSignal, XifCommitSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
+  connectorIn : {XifResultSignal, XifCommitSignal, XifIssueSignal, SyncSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
+  connectorOut : {XifResultSignal, XifCommitSignal, XifIssueSignal, VsetSignal, MemArbiterSignal, LsuFreeSignal, WbRetireSignal}
 )
 
 ConnectorModel staBranchPredModel (
@@ -946,16 +951,18 @@ MicroactionMapping {
   V_Load : {
     /* Shared */
     uA_ID_Req_SReg_A,
-    uA_ID_Req_XifResultSignal,
+    uA_ID_Req_XifResultSignal,          // Request XIF Result Signal
     uA_ID_Decode,
+    uA_ID_XifIssueSignal,               // XIF Issue Signal
     /* Scalar */
-    uA_EX_XifCommitSignal,
+    uA_EX_XifCommitSignal,              // XIF Commit Signal
     uA_EX_Req_SyncSignal,
     uA_WB_Nop,
     /* Vector */
     uA_V_IQ_Queue,
+    uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
     uA_V_DISP_Req_MaxVdGroupLoadStore,  // WAW
-    uA_V_DISP_Req_XifCommitSignal,      // XIF Commit Signal
+    uA_V_DISP_Req_XifCommitSignal,      // Request XIF Commit Signal
     uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
