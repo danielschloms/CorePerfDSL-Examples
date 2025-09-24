@@ -168,7 +168,8 @@ Microaction {
   uA_V_DISP_Req_MaxVdGroupLoadStore (MaxVdGroupLoadStore),
   uA_V_DISP_Req_Vd                  (Vd),
   uA_V_DISP_Req_MaskReg             (MaskReg),
-  uA_V_DISP_Req_XifCommitSignal     (XifCommitSignal)
+  uA_V_DISP_Req_XifCommitSignal     (XifCommitSignal),
+  uA_V_DISP_Req_LsuFreeSignal       (LsuFreeSignal)
 }
 
 /* uA Vector EX */
@@ -327,7 +328,8 @@ Stage {
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Req_MaxVdGroupLoadStore,
     uA_V_DISP_Req_MaskReg,
-    uA_V_DISP_Req_XifCommitSignal
+    uA_V_DISP_Req_XifCommitSignal,
+    uA_V_DISP_Req_LsuFreeSignal
     // uA_V_DISP_Req_ALU_Pipe_Free,
     // uA_V_DISP_Req_LSU_ELM_Pipe_Free
   ),
@@ -924,8 +926,9 @@ MicroactionMapping {
     uA_WB_Req_WbRetireSignal,
     uA_WB_Nop,
     /* Vector */
-    uA_V_DISP_Req_MaxVdGroupLoadStore,
-    uA_V_DISP_Req_XifCommitSignal,
+    uA_V_DISP_Req_MaxVdGroupLoadStore,  // WAW
+    uA_V_DISP_Req_XifCommitSignal,      // XIF Commit Signal
+    uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
