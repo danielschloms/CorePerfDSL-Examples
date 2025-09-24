@@ -339,6 +339,19 @@ Stage {
     uA_V_RES_XifReturnSignal
   )
 }
+
+Resource {
+  V_ID_Decoder
+}
+
+Microaction {
+  uA_V_ID_Decode (V_ID_Decoder)
+}
+
+Stage {
+  V_ID_stage (uA_V_ID_Decode)
+}
+
 Pipeline Vector_pipeline (V_IQ_stage -> V_DISP_stage -> V_EX_stage -> V_RES_stage)
 
 // Full Pipeline
