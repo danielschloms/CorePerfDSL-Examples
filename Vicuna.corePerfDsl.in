@@ -106,7 +106,7 @@ Resource {
   V_LSU_MemArbiter_Signaller,
   V_ELM                 (vectorElmModel),
   V_ELM_RegWriter,
-  V_EX_LSU_Req_Buffer,
+  // V_EX_LSU_Req_Buffer,
   V_EX_LSU_Resp_Buffer
 }
 
@@ -190,7 +190,7 @@ Microaction {
   uA_V_ELM_Use                      (V_ELM),
   uA_V_ELM_SetGroup                 (V_ELM_RegWriter -> VdGroupElm),
   uA_V_EX_LSU_Require_Free_LSU      (LsuFreeSignal),
-  uA_V_EX_LSU_Req_Buffer            (V_EX_LSU_Req_Buffer),
+  // uA_V_EX_LSU_Req_Buffer            (V_EX_LSU_Req_Buffer),
   uA_V_EX_LSU_Resp_Buffer           (V_EX_LSU_Resp_Buffer)
 }
 
@@ -243,7 +243,7 @@ Stage {
     uA_V_EX_ALU_Single_Vd
   ),
 
-  V_EX_LSU_Req_Buffer_substage (uA_V_EX_LSU_Req_Buffer),
+  // V_EX_LSU_Req_Buffer_substage (uA_V_EX_LSU_Req_Buffer),
   V_EX_LSU_Resp_Buffer_substage (uA_V_EX_LSU_Resp_Buffer),
 
   V_EX_LSU_Mem_substage (
@@ -290,7 +290,7 @@ Stage {
 
 Pipeline {
   V_EX_LSU_subpipeline (
-    V_EX_LSU_Req_Buffer_substage ->
+    // V_EX_LSU_Req_Buffer_substage ->
     V_EX_LSU_Mem_substage ->
     V_EX_LSU_Resp_Buffer_substage
   ),
@@ -928,7 +928,7 @@ MicroactionMapping {
     uA_V_DISP_Req_XifCommitSignal,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
-    uA_V_EX_LSU_Req_Buffer,
+    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
@@ -949,7 +949,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_EX_LSU_ELM_Unpack,
-    uA_V_EX_LSU_Req_Buffer,
+    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
@@ -969,7 +969,7 @@ MicroactionMapping {
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
-    uA_V_EX_LSU_Req_Buffer,
+    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem,
     uA_V_EX_LSU_Resp_Buffer,
@@ -989,7 +989,7 @@ MicroactionMapping {
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
-    uA_V_EX_LSU_Req_Buffer,
+    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
     uA_V_EX_LSU_Resp_Buffer,
