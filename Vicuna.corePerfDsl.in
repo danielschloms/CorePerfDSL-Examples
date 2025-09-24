@@ -59,8 +59,8 @@ Resource {Decoder_V, Reg_V, ResCtrl, V_Retire}
 
 /* Decode */
 Resource {
-  Vset_Signaller,
-  Vset
+  Vset,
+  ID_Signaller
 }
 
 /* Scalar EX */
@@ -94,10 +94,6 @@ Resource {
 
 /* Vector EX */
 Resource {
-  // V_EX_Packer,
-  // V_EX_Packer_Vd,
-  // V_EX_Unpacker_ALU_Pipe (3),
-  // V_EX_Unpacker_LSU_Pipe (2),
   V_ALU                 (vectorAluModel),
   V_ALU_Single,
   V_ALU_Single_RegWriter,
@@ -130,8 +126,7 @@ Microaction {
   uA_ID_Req_SReg_A            (Xa),
   uA_ID_Req_SReg_B            (Xb),
   uA_ID_Req_XifReturnSignal   (XifReturnSignal),
-  // WAW Vector
-  uA_ID_Req_MaxVdGroup (MaxVdGroup)
+  uA_ID_XifCommitSignal       (ID_Signaller -> XifCommitSignal)
 }
 
 /* uA Scalar Execute */
@@ -172,7 +167,8 @@ Microaction {
   uA_V_DISP_Req_MaxVdGroupNf        (MaxVdGroupNf),
   uA_V_DISP_Req_MaxVdGroupLoadStore (MaxVdGroupLoadStore),
   uA_V_DISP_Req_Vd                  (Vd),
-  uA_V_DISP_Req_MaskReg             (MaskReg)
+  uA_V_DISP_Req_MaskReg             (MaskReg),
+  uA_V_DISP_Req_XifCommitSignal     (XifCommitSignal)
 }
 
 /* uA Vector EX */
@@ -330,7 +326,8 @@ Stage {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Req_MaxVdGroupLoadStore,
-    uA_V_DISP_Req_MaskReg
+    uA_V_DISP_Req_MaskReg,
+    uA_V_DISP_Req_XifCommitSignal
     // uA_V_DISP_Req_ALU_Pipe_Free,
     // uA_V_DISP_Req_LSU_ELM_Pipe_Free
   ),
@@ -367,7 +364,7 @@ Stage {
     uA_ID_JumpDecodeReg,
     uA_ID_Req_SReg_A,
     uA_ID_Req_SReg_B,
-    uA_ID_Req_MaxVdGroup
+    uA_ID_XifCommitSignal
   )
 }
 
@@ -928,6 +925,7 @@ MicroactionMapping {
     uA_WB_Nop,
     /* Vector */
     uA_V_DISP_Req_MaxVdGroupLoadStore,
+    uA_V_DISP_Req_XifCommitSignal,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Unpack,
     uA_V_EX_LSU_Req_Buffer,
