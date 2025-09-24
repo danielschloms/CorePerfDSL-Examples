@@ -261,9 +261,15 @@ Stage {
 
 /* Subpipeline of V_EX_stage */
 
+Microaction {
+  V_EX_LSU_ELM_Unpack_Req_LsuFreeSignal (LsuFreeSignal)
+}
+
+@FIFO 6 6 V_EX_LSU_ELM_Unpack_FIFO_substage V_EX_LSU_ELM_Unpack_FIFO_subpipeline V_EX_LSU_ELM_Unpack_Req_LsuFreeSignal
+
 Resource {
   V_EX_ALU_Unpacker     (3),
-  V_EX_LSU_ELM_Unpacker (1),
+  V_EX_LSU_ELM_Unpacker (2),
   V_EX_ALU_Packer,
   V_EX_LSU_ELM_Packer,
   V_EX_ALU_Pipe_Signaller,
@@ -300,7 +306,7 @@ Stage {
 
 Pipeline {
   V_EX_ALU_subpipeline (V_EX_ALU_Unpack_substage -> V_EX_ALU_Unit_substage -> V_EX_ALU_Pack_substage),
-  V_EX_LSU_ELM_subpipeline (V_EX_LSU_ELM_Unpack_substage -> V_EX_LSU_ELM_Unit_substage)
+  V_EX_LSU_ELM_subpipeline (V_EX_LSU_ELM_Unpack_FIFO_substage -> V_EX_LSU_ELM_Unpack_substage -> V_EX_LSU_ELM_Unit_substage)
 }
 
 Stage {
@@ -947,7 +953,7 @@ MicroactionMapping {
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_V_EX_LSU_ELM_Unpack,
+    // uA_V_EX_LSU_ELM_Unpack,
     uA_V_ELM_SetGroup,
     uA_V_ELM_Use,
     // uA_V_EX_LSU_ELM_Pack,
@@ -957,7 +963,7 @@ MicroactionMapping {
   V_Load : {
     /* Shared */
     uA_ID_Req_SReg_A,
-    uA_ID_Req_XifResultSignal,          // Request XIF Result Signal
+    // uA_ID_Req_XifResultSignal,          // Request XIF Result Signal
     uA_ID_Decode,
     uA_ID_XifIssueSignal,               // XIF Issue Signal
     /* Scalar */
@@ -966,11 +972,12 @@ MicroactionMapping {
     uA_WB_Nop,
     /* Vector */
     uA_V_IQ_Queue,
-    uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
+    // uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
     uA_V_DISP_Req_MaxVdGroupLoadStore,  // WAW
-    uA_V_DISP_Req_XifCommitSignal,      // Request XIF Commit Signal
-    uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
+    // uA_V_DISP_Req_XifCommitSignal,      // Request XIF Commit Signal
+    // uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
     uA_V_DISP_Dispatch,
+    @SHIFT V_EX_LSU_ELM_Unpack_FIFO_substage end_action
     uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_SetGroup,
@@ -992,7 +999,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Dispatch,
     uA_V_DISP_Req_MaxVdGroupNf,
-    uA_V_EX_LSU_ELM_Unpack,
+    // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
@@ -1011,7 +1018,8 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
-    uA_V_EX_LSU_ELM_Unpack,
+    @SHIFT V_EX_LSU_ELM_Unpack_FIFO_substage
+    // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
@@ -1030,7 +1038,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
-    uA_V_EX_LSU_ELM_Unpack,
+    // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
