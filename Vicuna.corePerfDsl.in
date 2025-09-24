@@ -105,9 +105,9 @@ Resource {
   V_LSU_RegWriter,
   V_LSU_MemArbiter_Signaller,
   V_ELM                 (vectorElmModel),
-  V_ELM_RegWriter,
+  V_ELM_RegWriter
   // V_EX_LSU_Req_Buffer,
-  V_EX_LSU_Resp_Buffer
+  // V_EX_LSU_Resp_Buffer
 }
 
 /****** Microactions ******/
@@ -186,13 +186,13 @@ Microaction {
   uA_V_LSU_MemArbiter_Signal        (V_LSU_MemArbiter_Signaller -> MemArbiterSignal),
   uA_V_LSU_Load_SetGroup            (V_LSU_RegWriter -> VdGroupLoad),
   uA_V_LSU_Load_Registers_SetGroup  (V_LSU_RegWriter -> VdGroupLoadRegisters),
-  uA_V_LSU_Mem                      (V_LSU_Mem -> LsuFreeSignal),
+  uA_V_LSU_Use                      (V_LSU_Mem -> LsuFreeSignal),
   uA_V_LSU_Mem_Registers            (V_LSU_Mem_Registers),
   uA_V_ELM_Use                      (V_ELM),
   uA_V_ELM_SetGroup                 (V_ELM_RegWriter -> VdGroupElm),
-  uA_V_EX_LSU_Require_Free_LSU      (LsuFreeSignal),
+  uA_V_EX_LSU_Require_Free_LSU      (LsuFreeSignal)
   // uA_V_EX_LSU_Req_Buffer            (V_EX_LSU_Req_Buffer),
-  uA_V_EX_LSU_Resp_Buffer           (V_EX_LSU_Resp_Buffer)
+  // uA_V_EX_LSU_Resp_Buffer           (V_EX_LSU_Resp_Buffer)
 }
 
 /* uA Vector RES */
@@ -212,6 +212,7 @@ Stage {
     uA_EX_ALU_Branch, 
     uA_EX_CSR,
     uA_EX_Req_MemArbiter_Signal,
+    uA_EX_Req_SyncSignal,
     uA_EX_LSU, 
     uA_MUL, 
     uA_MULH, 
@@ -245,10 +246,10 @@ Stage {
   ),
 
   // V_EX_LSU_Req_Buffer_substage (uA_V_EX_LSU_Req_Buffer),
-  V_EX_LSU_Resp_Buffer_substage (uA_V_EX_LSU_Resp_Buffer),
+  // V_EX_LSU_Resp_Buffer_substage (uA_V_EX_LSU_Resp_Buffer),
 
   V_EX_LSU_Mem_substage (
-    uA_V_LSU_Mem,
+    uA_V_LSU_Use,
     uA_V_LSU_Mem_Registers,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_Load_Registers_SetGroup,
@@ -265,7 +266,7 @@ Stage {
 
 Resource {
   V_EX_ALU_Unpacker     (3),
-  V_EX_LSU_ELM_Unpacker (2),
+  V_EX_LSU_ELM_Unpacker (1),
   V_EX_ALU_Packer,
   V_EX_LSU_ELM_Packer,
   V_EX_ALU_Pipe_Signaller,
@@ -292,8 +293,8 @@ Stage {
 Pipeline {
   V_EX_LSU_subpipeline (
     // V_EX_LSU_Req_Buffer_substage ->
-    V_EX_LSU_Mem_substage ->
-    V_EX_LSU_Resp_Buffer_substage
+    V_EX_LSU_Mem_substage
+    // V_EX_LSU_Resp_Buffer_substage
   ),
   V_EX_ELM_subpipeline (V_EX_ELM_substage)
 }
@@ -304,11 +305,11 @@ Stage {
 
 Pipeline {
   V_EX_ALU_subpipeline (V_EX_ALU_Unpack_substage -> V_EX_ALU_Unit_substage -> V_EX_ALU_Pack_substage),
-  V_EX_LSU_ELM_subpipeline (V_EX_LSU_ELM_Unpack_substage -> V_EX_LSU_ELM_Unit_substage -> V_EX_LSU_ELM_Pack_substage)
+  V_EX_LSU_ELM_subpipeline (V_EX_LSU_ELM_Unpack_substage -> V_EX_LSU_ELM_Unit_substage)
 }
 
 Stage {
-  V_EX_stage [capacity: 3] (V_EX_ALU_subpipeline, V_EX_LSU_ELM_subpipeline)
+  V_EX_stage [capacity: 5] (V_EX_ALU_subpipeline, V_EX_LSU_ELM_subpipeline)
 }
 
 // Pipeline {
@@ -804,7 +805,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     uA_V_EX_ALU_Unpack,
     uA_V_ELM_Use,
-    uA_V_EX_LSU_ELM_Pack,
+    // uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Return_Result,
     uA_V_RES_SyncSignal
   },
@@ -913,7 +914,7 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Unpack,
     uA_V_ELM_SetGroup,
     uA_V_ELM_Use,
-    uA_V_EX_LSU_ELM_Pack,
+    // uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Nop
   },
                 
@@ -923,7 +924,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     /* Scalar */
     uA_EX_Nop,
-    uA_WB_Req_WbRetireSignal,
+    uA_EX_Req_SyncSignal,
     uA_WB_Nop,
     /* Vector */
     uA_V_DISP_Req_MaxVdGroupLoadStore,  // WAW
@@ -934,10 +935,10 @@ MicroactionMapping {
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
-    uA_V_LSU_Mem,
-    uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
-    uA_V_RES_XifReturnSignal
+    uA_V_LSU_Use,
+    // uA_V_EX_LSU_Resp_Buffer,
+    // uA_V_EX_LSU_ELM_Pack,
+    uA_V_RES_SyncSignal
   },
 
   V_Load_Registers : {
@@ -956,8 +957,8 @@ MicroactionMapping {
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
-    uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
+    // uA_V_EX_LSU_Resp_Buffer,
+    // uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
     uA_V_RES_XifReturnSignal
   },
 
@@ -974,9 +975,9 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
-    uA_V_LSU_Mem,
-    uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
+    uA_V_LSU_Use,
+    // uA_V_EX_LSU_Resp_Buffer,
+    // uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
     uA_V_RES_XifReturnSignal
   },
 
@@ -995,8 +996,8 @@ MicroactionMapping {
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Registers,
-    uA_V_EX_LSU_Resp_Buffer,
-    uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
+    // uA_V_EX_LSU_Resp_Buffer,
+    // uA_V_EX_LSU_ELM_Pack_WbRetireSignal,
     uA_V_RES_XifReturnSignal
   },
 
