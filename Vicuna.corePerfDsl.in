@@ -54,6 +54,13 @@ Connector {
   LsuFreeSignal
 }
 
+// LSU/ELM Shift Register
+Connector {
+  EnterShiftRegister,
+  LeaveShiftRegister,
+  AllowedEnterTime
+}
+
 Resource {PCGen, Decoder, JumpDecoder}
 Resource {IPort_R, DPort_R, DPort_W}
 Resource {Decoder_V, Reg_V, ResCtrl, V_Retire}
@@ -166,13 +173,14 @@ Microaction {
   uA_V_DISP_Req_Vs2                 (Vs2),
   uA_V_DISP_Req_Vs3                 (Vs3),
   // WAW
-  uA_V_DISP_Req_MaxVdGroup          (MaxVdGroup),
-  uA_V_DISP_Req_MaxVdGroupNf        (MaxVdGroupNf),
-  uA_V_DISP_Req_MaxVdGroupLoadStore (MaxVdGroupLoadStore),
-  uA_V_DISP_Req_Vd                  (Vd),
-  uA_V_DISP_Req_MaskReg             (MaskReg),
-  uA_V_DISP_Req_XifCommitSignal     (XifCommitSignal),
-  uA_V_DISP_Req_LsuFreeSignal       (LsuFreeSignal)
+  uA_V_DISP_Req_MaxVdGroup                    (MaxVdGroup),
+  uA_V_DISP_Req_MaxVdGroupNf                  (MaxVdGroupNf),
+  uA_V_DISP_Req_MaxVdGroupLoadStore           (MaxVdGroupLoadStore),
+  uA_V_DISP_Req_Vd                            (Vd),
+  uA_V_DISP_Req_MaskReg                       (MaskReg),
+  uA_V_DISP_Req_XifCommitSignal               (XifCommitSignal),
+  uA_V_DISP_Req_LsuFreeSignal                 (LsuFreeSignal),
+  uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack (AllowedEnterTime)
 }
 
 /* uA Vector EX */
@@ -261,35 +269,6 @@ Stage {
 
 /* Subpipeline of V_EX_stage */
 
-Microaction {
-  V_EX_LSU_ELM_Unpack_Req_LsuFreeSignal (LsuFreeSignal)
-}
-
-@FIFO 6 6 V_EX_LSU_ELM_Unpack_FIFO_substage V_EX_LSU_ELM_Unpack_FIFO_subpipeline V_EX_LSU_ELM_Unpack_Req_LsuFreeSignal
-
-Resource {
-  V_EX_ALU_Unpacker     (3),
-  V_EX_LSU_ELM_Unpacker (2),
-  V_EX_ALU_Packer,
-  V_EX_LSU_ELM_Packer,
-  V_EX_ALU_Pipe_Signaller,
-  V_EX_LSU_ELM_Pipe_Signaller
-}
-
-Microaction {
-  uA_V_EX_ALU_Unpack                     (V_EX_ALU_Unpacker),
-  uA_V_EX_LSU_ELM_Unpack                 (V_EX_LSU_ELM_Unpacker),
-  uA_V_EX_ALU_Pack                       (V_EX_ALU_Packer),
-  uA_V_EX_ALU_Pack_Vd                    (V_EX_ALU_Packer -> Vd),
-  uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer)
-}
-
-Stage {
-  V_EX_ALU_Unpack_substage      (uA_V_EX_ALU_Unpack),
-  V_EX_LSU_ELM_Unpack_substage  (uA_V_EX_LSU_ELM_Unpack),
-  V_EX_ALU_Pack_substage        (uA_V_EX_ALU_Pack, uA_V_EX_ALU_Pack_Vd),
-  V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack)
-}
 
 Pipeline {
   V_EX_LSU_subpipeline (
@@ -300,13 +279,58 @@ Pipeline {
   V_EX_ELM_subpipeline (V_EX_ELM_substage)
 }
 
+Resource {
+  V_EX_ALU_Unpacker     (3),
+  V_EX_LSU_ELM_Unpacker (2),
+  V_EX_ALU_Packer,
+  V_EX_LSU_ELM_Packer,
+  V_EX_ALU_Pipe_Signaller,
+  V_EX_LSU_ELM_Pipe_Signaller,
+  V_EX_LSU_ELM_ShiftRegister
+}
+
+Microaction {
+  V_EX_LSU_ELM_Unpack_Req_LsuFreeSignal (LsuFreeSignal)
+}
+
+Microaction {
+  // LSU/ELM Pipeline
+  uA_V_EX_LSU_ELM_Enter_ShiftRegister    (V_EX_LSU_ELM_ShiftRegister -> EnterShiftRegister),
+  uA_V_EX_LSU_ELM_Leave_ShiftRegister    (LeaveShiftRegister),
+  uA_V_EX_LSU_ELM_Req_LsuFreeSignal      (LsuFreeSignal),
+  uA_V_EX_LSU_ELM_Unpack                 (V_EX_LSU_ELM_Unpacker),
+  uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer),
+
+  // Arithmetic Pipeline
+  uA_V_EX_ALU_Unpack                     (V_EX_ALU_Unpacker),
+  uA_V_EX_ALU_Pack                       (V_EX_ALU_Packer),
+  uA_V_EX_ALU_Pack_Vd                    (V_EX_ALU_Packer -> Vd)
+}
+
 Stage {
-  V_EX_LSU_ELM_Unit_substage [capacity: 2] (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline)
+  // LSU/ELM Pipeline
+  V_EX_LSU_ELM_ShiftRegister_Enter_substage [capacity: 6] (uA_V_EX_LSU_ELM_Enter_ShiftRegister),
+  V_EX_LSU_ELM_ShiftRegister_Leave_substage [capacity: 6] (
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
+    uA_V_EX_LSU_ELM_Req_LsuFreeSignal
+  ),
+  V_EX_LSU_ELM_Unpack_substage  (uA_V_EX_LSU_ELM_Unpack),
+  V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack),
+  V_EX_LSU_ELM_Unit_substage [capacity: 2] (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
+
+  // Arithmetic Pipeline
+  V_EX_ALU_Unpack_substage      (uA_V_EX_ALU_Unpack),
+  V_EX_ALU_Pack_substage        (uA_V_EX_ALU_Pack, uA_V_EX_ALU_Pack_Vd)
 }
 
 Pipeline {
   V_EX_ALU_subpipeline (V_EX_ALU_Unpack_substage -> V_EX_ALU_Unit_substage -> V_EX_ALU_Pack_substage),
-  V_EX_LSU_ELM_subpipeline (V_EX_LSU_ELM_Unpack_FIFO_substage -> V_EX_LSU_ELM_Unpack_substage -> V_EX_LSU_ELM_Unit_substage)
+  V_EX_LSU_ELM_subpipeline (
+    V_EX_LSU_ELM_ShiftRegister_Enter_substage ->
+    V_EX_LSU_ELM_ShiftRegister_Leave_substage ->
+    // V_EX_LSU_ELM_Unpack_substage -> 
+    V_EX_LSU_ELM_Unit_substage
+  )
 }
 
 Stage {
@@ -346,7 +370,8 @@ Stage {
     uA_V_DISP_Req_MaxVdGroupLoadStore,
     uA_V_DISP_Req_MaskReg,
     uA_V_DISP_Req_XifCommitSignal,
-    uA_V_DISP_Req_LsuFreeSignal
+    uA_V_DISP_Req_LsuFreeSignal,
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack
     // uA_V_DISP_Req_ALU_Pipe_Free,
     // uA_V_DISP_Req_LSU_ELM_Pipe_Free
   )
@@ -450,6 +475,12 @@ ConnectorModel staBranchPredModel (
   trace : {pc, brTarget}
   connectorIn : {Pc_np, Pc_p}
   connectorOut : Pc
+)
+
+ConnectorModel lsuElmShiftRegister (
+  link : "models/Vicuna/LsuElmShiftRegister.h"
+  connectorIn : {EnterShiftRegister}
+  connectorOut : {LeaveShiftRegister, AllowedEnterTime}
 )
 
 ResourceModel divider (
@@ -973,12 +1004,15 @@ MicroactionMapping {
     /* Vector */
     uA_V_IQ_Queue,
     // uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
-    uA_V_DISP_Req_MaxVdGroupLoadStore,  // WAW
+    uA_V_DISP_Req_MaxVdGroupLoadStore,     // WAW
     // uA_V_DISP_Req_XifCommitSignal,      // Request XIF Commit Signal
     // uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
-    @SHIFT V_EX_LSU_ELM_Unpack_FIFO_substage end_action
-    uA_V_EX_LSU_ELM_Unpack,
+    uA_V_EX_LSU_ELM_Enter_ShiftRegister,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
+    uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
+    // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
@@ -1018,7 +1052,8 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
-    @SHIFT V_EX_LSU_ELM_Unpack_FIFO_substage
+    uA_V_EX_LSU_ELM_Enter_ShiftRegister,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
@@ -1331,7 +1366,8 @@ CorePerfModel Vicuna_zvl64b (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 
@@ -1347,7 +1383,8 @@ CorePerfModel Vicuna_zvl128b (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 
@@ -1363,7 +1400,8 @@ CorePerfModel Vicuna_zvl256b (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 
@@ -1379,7 +1417,8 @@ CorePerfModel Vicuna_zvl512b (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 
@@ -1395,7 +1434,8 @@ CorePerfModel Vicuna_zvl1024b (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 
@@ -1412,7 +1452,8 @@ CorePerfModel Vicuna (
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
-    vectorSignaller
+    vectorSignaller,
+    lsuElmShiftRegister
   }
 )
 */
