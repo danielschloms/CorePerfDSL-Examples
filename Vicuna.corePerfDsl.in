@@ -107,13 +107,7 @@ Resource {
   V_ALU_Single_RegWriter,
   V_ALU_RegWriter,
   V_Divider             (vectorDividerModel),
-  V_Divider_RegWriter,
-  V_LSU_Mem            (vectorMemModel),
-  V_LSU_Mem_Registers  (vectorMemRegistersModel),
-  V_LSU_RegWriter,
-  V_LSU_MemArbiter_Signaller,
-  V_ELM                 (vectorElmModel),
-  V_ELM_RegWriter
+  V_Divider_RegWriter
   // V_EX_LSU_Req_Buffer,
   // V_EX_LSU_Resp_Buffer
 }
@@ -191,17 +185,7 @@ Microaction {
   uA_V_EX_ALU_Single_Vd     (V_ALU_Single_RegWriter -> Vd),
   uA_V_EX_ALU_SetGroup      (V_ALU_RegWriter -> VdGroupAlu),
   uA_V_EX_Divider_Use       (V_Divider),
-  uA_V_EX_Divider_SetGroup  (V_Divider_RegWriter -> VdGroupDivider),
-
-  // LSU/ELM Pipeline
-  uA_V_LSU_MemArbiter_Signal        (V_LSU_MemArbiter_Signaller -> MemArbiterSignal),
-  uA_V_LSU_Load_SetGroup            (V_LSU_RegWriter -> VdGroupLoad),
-  uA_V_LSU_Load_Registers_SetGroup  (V_LSU_RegWriter -> VdGroupLoadRegisters),
-  uA_V_LSU_Use                      (V_LSU_Mem -> LsuFreeSignal),
-  uA_V_LSU_Mem_Registers            (V_LSU_Mem_Registers),
-  uA_V_ELM_Use                      (V_ELM),
-  uA_V_ELM_SetGroup                 (V_ELM_RegWriter -> VdGroupElm),
-  uA_V_EX_LSU_Require_Free_LSU      (LsuFreeSignal)
+  uA_V_EX_Divider_SetGroup  (V_Divider_RegWriter -> VdGroupDivider)
   // uA_V_EX_LSU_Req_Buffer            (V_EX_LSU_Req_Buffer),
   // uA_V_EX_LSU_Resp_Buffer           (V_EX_LSU_Resp_Buffer)
 }
@@ -240,6 +224,8 @@ Stage {
 
 /* Vector EX substages */
 
+/* Arithmetic Pipeline */
+
 Stage {
   V_EX_ALU_Unit_substage (
     uA_V_EX_ALU_Use,
@@ -248,11 +234,44 @@ Stage {
     uA_V_EX_Divider_SetGroup,
     uA_V_EX_ALU_Single,
     uA_V_EX_ALU_Single_Vd
+  )
+}
+
+/* LSU/ELM Pipeline */
+
+Resource {
+  // LSU Unit Pipeline
+  V_LSU_Mem            (vectorMemModel),
+  V_LSU_Mem_Registers  (vectorMemRegistersModel),
+  V_LSU_RegWriter,
+  V_LSU_MemArbiter_Signaller,
+  V_LSU_Queue,
+
+  // ELM Unit Pipeline
+  V_ELM                 (vectorElmModel),
+  V_ELM_RegWriter
+}
+
+Microaction {
+  // LSU Unit Pipeline
+  uA_V_LSU_MemArbiter_Signal        (V_LSU_MemArbiter_Signaller -> MemArbiterSignal),
+  uA_V_LSU_Load_SetGroup            (V_LSU_RegWriter -> VdGroupLoad),
+  uA_V_LSU_Load_Registers_SetGroup  (V_LSU_RegWriter -> VdGroupLoadRegisters),
+  uA_V_LSU_Use                      (V_LSU_Mem -> LsuFreeSignal),
+  uA_V_LSU_Mem_Registers            (V_LSU_Mem_Registers),
+  uA_V_LSU_Queue                    (V_LSU_Queue),
+
+  // ELM Unit Pipeline
+  uA_V_ELM_Use                      (V_ELM),
+  uA_V_ELM_SetGroup                 (V_ELM_RegWriter -> VdGroupElm),
+  uA_V_EX_LSU_Require_Free_LSU      (LsuFreeSignal)
+}
+
+Stage {
+  // LSU Unit Pipeline
+  V_EX_LSU_Queue_substage [capacity: 4] (
+    uA_V_LSU_Queue
   ),
-
-  // V_EX_LSU_Req_Buffer_substage (uA_V_EX_LSU_Req_Buffer),
-  // V_EX_LSU_Resp_Buffer_substage (uA_V_EX_LSU_Resp_Buffer),
-
   V_EX_LSU_Mem_substage (
     uA_V_LSU_Use,
     uA_V_LSU_Mem_Registers,
@@ -261,23 +280,25 @@ Stage {
     uA_V_LSU_MemArbiter_Signal
   ),
 
+  // ELM Unit Pipeline
   V_EX_ELM_substage (
     uA_V_ELM_Use, 
     uA_V_ELM_SetGroup
   )
+  // V_EX_LSU_Req_Buffer_substage (uA_V_EX_LSU_Req_Buffer),
+  // V_EX_LSU_Resp_Buffer_substage (uA_V_EX_LSU_Resp_Buffer),
+
 }
-
-/* Subpipeline of V_EX_stage */
-
 
 Pipeline {
   V_EX_LSU_subpipeline (
-    // V_EX_LSU_Req_Buffer_substage ->
+    V_EX_LSU_Queue_substage ->
     V_EX_LSU_Mem_substage
-    // V_EX_LSU_Resp_Buffer_substage
   ),
   V_EX_ELM_subpipeline (V_EX_ELM_substage)
 }
+
+/* Subpipelines of V_EX_stage */
 
 Resource {
   V_EX_ALU_Unpacker     (3),
@@ -316,7 +337,7 @@ Stage {
   ),
   V_EX_LSU_ELM_Unpack_substage  (uA_V_EX_LSU_ELM_Unpack),
   V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack),
-  V_EX_LSU_ELM_Unit_substage [capacity: 2] (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
+  V_EX_LSU_ELM_Unit_substage    (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
 
   // Arithmetic Pipeline
   V_EX_ALU_Unpack_substage      (uA_V_EX_ALU_Unpack),
@@ -424,7 +445,7 @@ Stage {
 
 Pipeline Scalar_pipeline (ID_stage -> EX_stage -> WB_stage)
 
-Pipeline Vector_pipeline (V_IQ_stage -> V_DISP_stage -> V_EX_stage -> V_RES_stage)
+Pipeline Vector_pipeline (V_ID_stage -> V_IQ_stage -> V_DISP_stage -> V_EX_stage -> V_RES_stage)
 
 Pipeline Parallel_pipeline (Scalar_pipeline | Vector_pipeline)
 
@@ -1002,6 +1023,7 @@ MicroactionMapping {
     uA_EX_Req_WbFreeSignalSync,
     uA_WB_Nop,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     // uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
     uA_V_DISP_Req_MaxVdGroupLoadStore,     // WAW
@@ -1014,6 +1036,7 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
     // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
+    uA_V_LSU_Queue,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
@@ -1049,6 +1072,7 @@ MicroactionMapping {
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
@@ -1056,6 +1080,7 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     // uA_V_EX_LSU_ELM_Unpack,
     // uA_V_EX_LSU_Req_Buffer,
+    uA_V_LSU_Queue,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
     // uA_V_EX_LSU_Resp_Buffer,
