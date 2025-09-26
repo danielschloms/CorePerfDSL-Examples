@@ -242,7 +242,7 @@ Stage {
 Resource {
   // LSU Unit Pipeline
   V_LSU_Mem            (vectorMemModel),
-  V_LSU_Mem_Registers  (vectorMemRegistersModel),
+  V_LSU_Mem_Nf         (vectorMemNfModel),
   V_LSU_RegWriter,
   V_LSU_MemArbiter_Signaller,
   V_LSU_Queue,
@@ -258,7 +258,7 @@ Microaction {
   uA_V_LSU_Load_SetGroup            (V_LSU_RegWriter -> VdGroupLoad),
   uA_V_LSU_Load_Registers_SetGroup  (V_LSU_RegWriter -> VdGroupLoadRegisters),
   uA_V_LSU_Use                      (V_LSU_Mem -> LsuFreeSignal),
-  uA_V_LSU_Mem_Registers            (V_LSU_Mem_Registers),
+  uA_V_LSU_Mem_Nf                   (V_LSU_Mem_Nf),
   uA_V_LSU_Queue                    (V_LSU_Queue),
 
   // ELM Unit Pipeline
@@ -274,7 +274,7 @@ Stage {
   ),
   V_EX_LSU_Mem_substage (
     uA_V_LSU_Use,
-    uA_V_LSU_Mem_Registers,
+    uA_V_LSU_Mem_Nf,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal
@@ -302,7 +302,6 @@ Pipeline {
 
 Resource {
   V_EX_ALU_Unpacker     (3),
-  V_EX_LSU_ELM_Unpacker (2),
   V_EX_ALU_Packer,
   V_EX_LSU_ELM_Packer,
   V_EX_ALU_Pipe_Signaller,
@@ -319,7 +318,6 @@ Microaction {
   uA_V_EX_LSU_ELM_Enter_ShiftRegister    (V_EX_LSU_ELM_ShiftRegister -> EnterShiftRegister),
   uA_V_EX_LSU_ELM_Leave_ShiftRegister    (LeaveShiftRegister),
   uA_V_EX_LSU_ELM_Req_LsuFreeSignal      (LsuFreeSignal),
-  uA_V_EX_LSU_ELM_Unpack                 (V_EX_LSU_ELM_Unpacker),
   uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer),
 
   // Arithmetic Pipeline
@@ -335,7 +333,6 @@ Stage {
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal
   ),
-  V_EX_LSU_ELM_Unpack_substage  (uA_V_EX_LSU_ELM_Unpack),
   V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack),
   V_EX_LSU_ELM_Unit_substage    (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
 
@@ -345,17 +342,16 @@ Stage {
 }
 
 Pipeline {
-  V_EX_ALU_subpipeline (V_EX_ALU_Unpack_substage -> V_EX_ALU_Unit_substage -> V_EX_ALU_Pack_substage),
+  V_EX_Arith_subpipeline (V_EX_ALU_Unpack_substage -> V_EX_ALU_Unit_substage -> V_EX_ALU_Pack_substage),
   V_EX_LSU_ELM_subpipeline (
     V_EX_LSU_ELM_ShiftRegister_Enter_substage ->
     V_EX_LSU_ELM_ShiftRegister_Leave_substage ->
-    // V_EX_LSU_ELM_Unpack_substage -> 
     V_EX_LSU_ELM_Unit_substage
   )
 }
 
 Stage {
-  V_EX_stage [capacity: 5] (V_EX_ALU_subpipeline, V_EX_LSU_ELM_subpipeline)
+  V_EX_stage [capacity: 5] (V_EX_Arith_subpipeline, V_EX_LSU_ELM_subpipeline)
 }
 
 /* Vector Pipeline */
@@ -393,8 +389,6 @@ Stage {
     uA_V_DISP_Req_XifCommitSignal,
     uA_V_DISP_Req_LsuFreeSignal,
     uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack
-    // uA_V_DISP_Req_ALU_Pipe_Free,
-    // uA_V_DISP_Req_LSU_ELM_Pipe_Free
   )
 }
 
@@ -519,8 +513,8 @@ ResourceModel vectorMemModel (
   trace: {vtype, vl, lsWidth}
 )
 
-ResourceModel vectorMemRegistersModel (
-  link: "models/Vicuna/VectorMemRegistersModel.h"
+ResourceModel vectorMemNfModel (
+  link: "models/Vicuna/VectorMemNfModel.h"
   trace: {nf}
 )
 
@@ -786,12 +780,12 @@ MicroactionMapping {
   jalr :         {uA_ID_JumpDecodeReg, uA_EX_ALU_RegUpdate, uA_EX_Req_WbFreeSignal, uA_WB_Nop},
 
   V_Div_vv : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs1,
     uA_V_DISP_Req_Vs2,
@@ -806,13 +800,13 @@ MicroactionMapping {
   },
 
   V_Div_vx : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
@@ -827,12 +821,12 @@ MicroactionMapping {
 
   // Same as regular ALU, but only dependend on vs2  
   V_Ext : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
@@ -846,12 +840,12 @@ MicroactionMapping {
   },
 
   V_ALU_v_i : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_MaskReg,
@@ -864,13 +858,13 @@ MicroactionMapping {
   },
 
   V_vmv_s_x : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vd,
     uA_V_DISP_Dispatch,
@@ -882,12 +876,12 @@ MicroactionMapping {
 
 
   V_vmv_x_s : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_SyncSignal,
     uA_WB_Nop,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Dispatch,
@@ -899,12 +893,12 @@ MicroactionMapping {
   },
 
   V_Arith_vv : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs1, 
     uA_V_DISP_Req_Vs2,
@@ -919,12 +913,12 @@ MicroactionMapping {
 
   // Same as V_Arith_vv, but reiterated, since it needs to double LMUL
   V_Arith_Widening_vv : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs1, 
     uA_V_DISP_Req_Vs2,
@@ -938,13 +932,13 @@ MicroactionMapping {
   },
 
   V_Arith_vx : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
@@ -957,13 +951,13 @@ MicroactionMapping {
   },
 
   V_Arith_Widening_vx : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
@@ -976,12 +970,12 @@ MicroactionMapping {
   },
 
   V_Arith_vi : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
@@ -994,81 +988,65 @@ MicroactionMapping {
   },
 
   V_Elm_vv : {
-    /* Shared */
-    uA_ID_Decode,
     /* Scalar */
+    uA_ID_Decode,
     uA_EX_Req_XifResultSignal,
     uA_WB_XifResultSignal,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs1, 
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    // uA_V_EX_LSU_ELM_Unpack,
     uA_V_ELM_SetGroup,
     uA_V_ELM_Use,
-    // uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Nop
   },
                 
   V_Load : {
-    /* Shared */
-    uA_ID_Req_SReg_A,
-    // uA_ID_Req_XifResultSignal,          // Request XIF Result Signal
-    uA_ID_Decode,
-    uA_ID_XifIssueSignal,               // XIF Issue Signal
     /* Scalar */
-    uA_EX_XifCommitSignal,              // XIF Commit Signal
+    uA_ID_Req_SReg_A,
+    uA_ID_Decode,
     uA_EX_Req_WbFreeSignalSync,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
-    // uA_V_IQ_Req_XifIssueSignal,         // Request XIF Issue Signal
-    uA_V_DISP_Req_MaxVdGroupLoadStore,     // WAW
-    // uA_V_DISP_Req_XifCommitSignal,      // Request XIF Commit Signal
-    // uA_V_DISP_Req_LsuFreeSignal,        // LSU Unit is available
+    uA_V_DISP_Req_MaxVdGroupLoadStore,
     uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Enter_ShiftRegister,
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
-    // uA_V_EX_LSU_ELM_Unpack,
-    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Queue,
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
-    // uA_V_EX_LSU_Resp_Buffer,
-    // uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_WbFreeSignalSync
   },
 
   V_Load_Registers : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
-    uA_V_DISP_Dispatch,
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Req_MaxVdGroupNf,
-    // uA_V_EX_LSU_ELM_Unpack,
-    // uA_V_EX_LSU_Req_Buffer,
+    uA_V_DISP_Dispatch,
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
-    uA_V_LSU_Mem_Registers,
-    // uA_V_EX_LSU_Resp_Buffer,
+    uA_V_LSU_Mem_Nf,
     uA_V_RES_XifResultSignal
   },
 
   V_Store : {
     uA_ID_Decode, 
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
@@ -1078,60 +1056,51 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Enter_ShiftRegister,
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
-    // uA_V_EX_LSU_ELM_Unpack,
-    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_Queue,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
-    // uA_V_EX_LSU_Resp_Buffer,
     uA_V_RES_XifResultSignal
   },
 
   V_Store_Registers : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode, 
     uA_ID_Req_SReg_A,
-    /* Scalar */
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
+    uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
     uA_V_DISP_Dispatch,
-    // uA_V_EX_LSU_ELM_Unpack,
-    // uA_V_EX_LSU_Req_Buffer,
     uA_V_LSU_MemArbiter_Signal,
-    uA_V_LSU_Mem_Registers,
-    // uA_V_EX_LSU_Resp_Buffer,
+    uA_V_LSU_Mem_Nf,
     uA_V_RES_XifResultSignal
   },
 
   V_vsetivli : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_XifResultSignal,
-    /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
   },
 
   V_vsetvli : {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_ID_Req_XifResultSignal,
-    /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
   },
 
   V_vsetvl: {
-    /* Shared */
+    /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_ID_Req_SReg_B,
     uA_ID_Req_XifResultSignal,
-    /* Scalar */
     uA_EX_Vset,
     uA_WB_Nop
   }
@@ -1387,7 +1356,7 @@ CorePerfModel Vicuna_zvl64b (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
@@ -1404,7 +1373,7 @@ CorePerfModel Vicuna_zvl128b (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
@@ -1421,7 +1390,7 @@ CorePerfModel Vicuna_zvl256b (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
@@ -1438,7 +1407,7 @@ CorePerfModel Vicuna_zvl512b (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
@@ -1455,7 +1424,7 @@ CorePerfModel Vicuna_zvl1024b (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
@@ -1473,7 +1442,7 @@ CorePerfModel Vicuna (
     vectorRegModel, 
     staBranchPredModel, 
     vectorMemModel,
-    vectorMemRegistersModel,
+    vectorMemNfModel,
     vectorAluModel,
     vectorElmModel,
     vectorDividerModel, 
