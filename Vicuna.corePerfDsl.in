@@ -1009,6 +1009,7 @@ MicroactionMapping {
     uA_ID_Req_SReg_A,
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignalSync,
+    uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
@@ -1030,52 +1031,61 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
+    uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
-    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Req_MaxVdGroupNf,
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Nf,
-    uA_V_RES_XifResultSignal
+    uA_V_RES_WbFreeSignalSync
   },
 
   V_Store : {
-    uA_ID_Decode, 
     uA_ID_Req_SReg_A,
+    uA_ID_Decode, 
+    uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Enter_ShiftRegister,
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
+    uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
     uA_V_LSU_Queue,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
-    uA_V_RES_XifResultSignal
+    uA_V_RES_WbFreeSignalSync
   },
 
   V_Store_Registers : {
     /* Scalar */
     uA_ID_Decode, 
     uA_ID_Req_SReg_A,
+    uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs3,
+    uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
+    uA_V_EX_LSU_ELM_Enter_ShiftRegister,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
+    uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Nf,
-    uA_V_RES_XifResultSignal
+    uA_V_RES_WbFreeSignalSync
   },
 
   V_vsetivli : {
