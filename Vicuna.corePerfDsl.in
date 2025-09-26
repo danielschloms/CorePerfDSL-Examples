@@ -321,6 +321,9 @@ Microaction {
   uA_V_EX_LSU_ELM_Enter_ShiftRegister    (V_EX_LSU_ELM_ShiftRegister -> EnterShiftRegister),
   uA_V_EX_LSU_ELM_Leave_ShiftRegister    (LeaveShiftRegister),
   uA_V_EX_LSU_ELM_Req_LsuFreeSignal      (LsuFreeSignal),
+  uA_V_EX_LSU_ELM_Req_MaxVs1Group        (MaxVs1Group),
+  uA_V_EX_LSU_ELM_Req_MaxVs2Group        (MaxVs2Group),
+  uA_V_EX_LSU_ELM_Req_MaxVs3Group        (MaxVs3Group),
   uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer),
 
   // Arithmetic Pipeline
@@ -334,7 +337,10 @@ Stage {
   V_EX_LSU_ELM_ShiftRegister_Enter_substage [capacity: 6] (uA_V_EX_LSU_ELM_Enter_ShiftRegister),
   V_EX_LSU_ELM_ShiftRegister_Leave_substage [capacity: 6] (
     uA_V_EX_LSU_ELM_Leave_ShiftRegister,
-    uA_V_EX_LSU_ELM_Req_LsuFreeSignal
+    uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
+    uA_V_EX_LSU_ELM_Req_MaxVs1Group,
+    uA_V_EX_LSU_ELM_Req_MaxVs2Group,
+    uA_V_EX_LSU_ELM_Req_MaxVs3Group
   ),
   V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack),
   V_EX_LSU_ELM_Unit_substage    (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
