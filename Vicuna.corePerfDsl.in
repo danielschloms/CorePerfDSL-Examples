@@ -41,6 +41,7 @@ Connector {
   MaxVs1Group,
   MaxVs2Group,
   MaxVs3Group,
+  MaxVs3GroupStore,
   MaxVdGroupNf,
   MaxVdGroupLoadStore
 }
@@ -324,6 +325,7 @@ Microaction {
   uA_V_EX_LSU_ELM_Req_MaxVs1Group        (MaxVs1Group),
   uA_V_EX_LSU_ELM_Req_MaxVs2Group        (MaxVs2Group),
   uA_V_EX_LSU_ELM_Req_MaxVs3Group        (MaxVs3Group),
+  uA_V_EX_LSU_ELM_Req_MaxVs3GroupStore   (MaxVs3GroupStore),
   uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer),
 
   // Arithmetic Pipeline
@@ -340,7 +342,8 @@ Stage {
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
     uA_V_EX_LSU_ELM_Req_MaxVs1Group,
     uA_V_EX_LSU_ELM_Req_MaxVs2Group,
-    uA_V_EX_LSU_ELM_Req_MaxVs3Group
+    uA_V_EX_LSU_ELM_Req_MaxVs3Group,
+    uA_V_EX_LSU_ELM_Req_MaxVs3GroupStore
   ),
   V_EX_LSU_ELM_Pack_substage    (uA_V_EX_LSU_ELM_Pack),
   V_EX_LSU_ELM_Unit_substage    (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
@@ -355,7 +358,8 @@ Pipeline {
   V_EX_LSU_ELM_subpipeline (
     V_EX_LSU_ELM_ShiftRegister_Enter_substage ->
     V_EX_LSU_ELM_ShiftRegister_Leave_substage ->
-    V_EX_LSU_ELM_Unit_substage
+    V_EX_LSU_ELM_Unit_substage ->
+    V_EX_LSU_ELM_Pack_substage
   )
 }
 
@@ -494,6 +498,7 @@ ConnectorModel vectorRegModel (
     MaxVs1Group,
     MaxVs2Group,
     MaxVs3Group,
+    MaxVs3GroupStore,
     MaxVdGroup,
     MaxVdGroupNf,
     MaxVdGroupLoadStore
@@ -906,9 +911,10 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Dispatch,
-    uA_V_EX_ALU_Unpack,
+    uA_V_EX_LSU_ELM_Enter_ShiftRegister,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     uA_V_ELM_Use,
-    // uA_V_EX_LSU_ELM_Pack,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Return_Result,
     uA_V_RES_SyncSignal
   },
@@ -1020,8 +1026,11 @@ MicroactionMapping {
     uA_V_DISP_Req_Vs2,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
+    uA_V_EX_LSU_ELM_Enter_ShiftRegister,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     uA_V_ELM_SetGroup,
     uA_V_ELM_Use,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Nop
   },
                 
@@ -1045,6 +1054,7 @@ MicroactionMapping {
     uA_V_LSU_Load_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_WbFreeSignalSync
   },
 
@@ -1064,6 +1074,7 @@ MicroactionMapping {
     uA_V_LSU_Load_Registers_SetGroup,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Nf,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_WbFreeSignalSync
   },
 
@@ -1076,15 +1087,17 @@ MicroactionMapping {
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
-    uA_V_DISP_Req_Vs3,
+    //uA_V_DISP_Req_Vs3,
     uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Enter_ShiftRegister,
-    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
+    uA_V_EX_LSU_ELM_Req_MaxVs3GroupStore,
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
+    uA_V_EX_LSU_ELM_Leave_ShiftRegister,
     uA_V_LSU_Queue,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Use,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_WbFreeSignalSync
   },
 
@@ -1106,6 +1119,7 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Req_LsuFreeSignal,
     uA_V_LSU_MemArbiter_Signal,
     uA_V_LSU_Mem_Nf,
+    uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_WbFreeSignalSync
   },
 
