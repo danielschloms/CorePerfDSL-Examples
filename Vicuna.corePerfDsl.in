@@ -38,6 +38,9 @@ Connector {
   VdGroupLoad, 
   VdGroupLoadRegisters, 
   MaxVdGroup,
+  MaxVs1Group,
+  MaxVs2Group,
+  MaxVs3Group,
   MaxVdGroupNf,
   MaxVdGroupLoadStore
 }
@@ -476,7 +479,19 @@ ConnectorModel vectorRegModel (
   link : "models/Vicuna/VectorRegisterModel.h"
   trace : {vs1, vs2, vs3, vd, vm, vtype, lsWidth, isWidening, nf}
   connectorIn : {Vd, VdGroupDivider, VdGroupAlu, VdGroupElm, VdGroupLoad, VdGroupLoadRegisters}
-  connectorOut : {Vs1, Vs2, Vs3, MaskReg, Vd, MaxVdGroup, MaxVdGroupNf, MaxVdGroupLoadStore}
+  connectorOut : {
+    Vs1,
+    Vs2,
+    Vs3,
+    MaskReg,
+    Vd,
+    MaxVs1Group,
+    MaxVs2Group,
+    MaxVs3Group,
+    MaxVdGroup,
+    MaxVdGroupNf,
+    MaxVdGroupLoadStore
+  }
 )
 
 ConnectorModel vectorSignaller (
