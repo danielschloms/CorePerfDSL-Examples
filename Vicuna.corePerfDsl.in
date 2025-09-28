@@ -86,7 +86,7 @@ Resource {
   EX_Nop,
   EX_ALU,
   EX_MUL,
-  EX_MULH(5),
+  EX_MULH(4),
   EX_DIV(divider), 
   EX_DIVU(divider_u),
   EX_LSU,
@@ -830,7 +830,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -851,7 +851,7 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -871,7 +871,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -890,7 +890,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -909,7 +909,7 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -924,7 +924,7 @@ MicroactionMapping {
   V_vmv_x_s : {
     /* Scalar */
     uA_ID_Decode,
-    uA_EX_Req_SyncSignal,
+    uA_EX_Req_WbFreeSignalSync,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
@@ -938,14 +938,14 @@ MicroactionMapping {
     uA_V_ELM_Use,
     uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Return_Result,
-    uA_V_RES_SyncSignal
+    uA_V_RES_WbFreeSignalSync
   },
 
   V_Arith_vv : {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -965,7 +965,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -985,7 +985,7 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -1004,7 +1004,7 @@ MicroactionMapping {
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -1022,7 +1022,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
@@ -1040,7 +1040,7 @@ MicroactionMapping {
     /* Scalar */
     uA_ID_Decode,
     uA_EX_Req_WbFreeSignal,
-    uA_WB_XifResultSignal,
+    uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
