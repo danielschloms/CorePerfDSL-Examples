@@ -1016,18 +1016,19 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
-    uA_ID_Req_SReg_A,
     uA_EX_Req_WbFreeSignal,
+    uA_EX_Nop,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
-    // uA_V_DISP_Req_Vd,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_AllowedEnterTime_ArithUnpack,
     uA_V_DISP_Dispatch,
     uA_V_EX_Arith_Enter_Unpack,
     uA_V_EX_Arith_Leave_Unpack,
+    uA_V_EX_ALU_Buffer_Ops,
+    uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
     uA_V_EX_ALU_Use,
     uA_V_EX_Arith_Pack
