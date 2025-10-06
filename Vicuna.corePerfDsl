@@ -60,6 +60,7 @@ Connector {
   AllowedEnterTimeArithUnpack,
   AllowedEnterTimeArithUnpackVs1Vs2,
   EnterArithUnpack,
+  EnterArithUnpackExt,
   EnterArithUnpackVs2,
   EnterArithUnpackVs1Vs2,
   LeaveArithUnpack,
@@ -173,14 +174,16 @@ Stage {
 /* Scalar Writeback */
 Resource {
   WB_Signaller,
-  WB_Nop
+  WB_Nop,
+  EX_WB_XIF (0)
 }
 
 Microaction {
   uA_WB_Memory_R            (DPort_R -> Xd),
   uA_WB_Memory_W            (DPort_W),
   uA_WB_Nop                 (WB_Nop),
-  uA_WB_VsetSignal          (WB_Signaller -> VsetSignal)
+  uA_WB_VsetSignal          (WB_Signaller -> VsetSignal),
+  uA_WB_XifCommit           (EX_WB_XIF -> XifCommitSignal)
 }
 
 Stage {
@@ -188,7 +191,8 @@ Stage {
     uA_WB_Memory_R,
     uA_WB_Memory_W,
     uA_WB_Nop,
-    uA_WB_VsetSignal
+    uA_WB_VsetSignal,
+    uA_WB_XifCommit
   )        
 }
 
@@ -295,11 +299,11 @@ Microaction {
 
   // Arithmetic Pipeline
   uA_V_EX_Arith_Enter_Unpack             (V_EX_Arith_Unpack_ShiftRegister -> EnterArithUnpack),
+  uA_V_EX_Arith_Enter_Unpack_Ext         (V_EX_Arith_Unpack_ShiftRegister -> EnterArithUnpackExt),
   uA_V_EX_Arith_Enter_Unpack_Vs2         (V_EX_Arith_Unpack_ShiftRegister -> EnterArithUnpackVs2),
   uA_V_EX_Arith_Enter_Unpack_Vs1_Vs2     (V_EX_Arith_Unpack_ShiftRegister -> EnterArithUnpackVs1Vs2),
   uA_V_EX_Arith_Leave_Unpack             (LeaveArithUnpack),
-  uA_V_EX_Arith_Pack                     (V_EX_Arith_Packer),
-  uA_V_EX_Arith_Pack_Vd                  (V_EX_Arith_Packer -> Vd)
+  uA_V_EX_Arith_Pack                     (V_EX_Arith_Packer)
 }
 
 Resource {
@@ -336,6 +340,7 @@ Microaction {
   uA_V_EX_SLD_Use           (V_EX_SLD),
 
   uA_V_EX_ALU_SetGroup          (V_EX_ALU_RegWriter -> VdGroupArith),
+  uA_V_EX_ALU_SetVd             (V_EX_ALU_RegWriter -> Vd),
   uA_V_EX_ALU_Widening_SetGroup (V_EX_ALU_RegWriter -> VdGroupArithWidening),
   uA_V_EX_MUL_SetGroup          (V_EX_MUL_RegWriter -> VdGroupArith),
   uA_V_EX_MUL_Widening_SetGroup (V_EX_MUL_RegWriter -> VdGroupArithWidening),
@@ -359,7 +364,13 @@ Stage {
   // ALU Unit
   V_EX_ALU_BUF_OP_stg (uA_V_EX_ALU_Buffer_Ops),
   V_EX_ALU_BUF_INT_stg (uA_V_EX_ALU_Buffer_Intermediate, uA_V_EX_ALU_Req_VregWritePortFree),
-  V_EX_ALU_stg (uA_V_EX_ALU_Use, uA_V_EX_ALU_Widening_Use, uA_V_EX_ALU_SetGroup, uA_V_EX_ALU_Widening_SetGroup),
+  V_EX_ALU_stg (
+    uA_V_EX_ALU_Use,
+    uA_V_EX_ALU_Widening_Use,
+    uA_V_EX_ALU_SetGroup,
+    uA_V_EX_ALU_SetVd, 
+    uA_V_EX_ALU_Widening_SetGroup
+  ),
 
   // MUL Unit
   V_EX_MUL_BUF_OP_stg (uA_V_EX_MUL_Buffer_Ops),
@@ -392,7 +403,7 @@ Pipeline {
 
 Stage {
   // LSU/ELM Pipeline
-  V_EX_LSU_ELM_Unpack_Enter_stg [capacity : 3] (
+  V_EX_LSU_ELM_Unpack_Enter_stg [capacity: 5] (
     uA_V_EX_LSU_ELM_Enter_Unpack,
     uA_V_EX_LSU_ELM_Enter_Unpack_Vs2,
     uA_V_EX_LSU_ELM_Enter_Unpack_Vs1_Vs2,
@@ -401,26 +412,26 @@ Stage {
     uA_V_EX_LSU_ELM_Enter_Unpack_Store,
     uA_V_EX_LSU_ELM_Enter_Unpack_StoreNf
   ),
-  V_EX_LSU_ELM_Unpack_Leave_stg [capacity : 3] (
+  V_EX_LSU_ELM_Unpack_Leave_stg [capacity: 5] (
     uA_V_EX_LSU_ELM_Leave_Unpack
   ),
   V_EX_LSU_ELM_Pack_stg    (uA_V_EX_LSU_ELM_Pack, uA_V_EX_LSU_ELM_Pack_CompleteLoad),
-  V_EX_LSU_ELM_Unit_stg    (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
+  V_EX_LSU_ELM_Unit_stg [capacity:5] (V_EX_LSU_subpipeline, V_EX_ELM_subpipeline),
 
   // Arithmetic Pipeline
-  V_EX_Arith_Unpack_Enter_stg [capacity: 2] (
+  V_EX_Arith_Unpack_Enter_stg [capacity: 5] (
     uA_V_EX_Arith_Enter_Unpack,
+    uA_V_EX_Arith_Enter_Unpack_Ext,
     uA_V_EX_Arith_Enter_Unpack_Vs2,
     uA_V_EX_Arith_Enter_Unpack_Vs1_Vs2
   ),
-  V_EX_Arith_Unpack_Leave_stg (
+  V_EX_Arith_Unpack_Leave_stg [capacity: 5] (
     uA_V_EX_Arith_Leave_Unpack
   ),
   V_EX_Arith_Pack_stg (
-    uA_V_EX_Arith_Pack,
-    uA_V_EX_Arith_Pack_Vd
+    uA_V_EX_Arith_Pack
   ),
-  V_EX_Arith_Unit_stg [capacity: 5] (
+  V_EX_Arith_Unit_stg [capacity: 10](
     V_EX_ALU_subpipeline,
     V_EX_MUL_subpipeline,
     V_EX_DIV_subpipeline,
@@ -430,11 +441,20 @@ Stage {
 }
 
 Pipeline {
+  V_EX_Arith_Unit_pipeline (
+    V_EX_ALU_subpipeline | 
+    V_EX_MUL_subpipeline | 
+    V_EX_DIV_subpipeline | 
+    V_EX_FPU_subpipeline | 
+    V_EX_SLD_subpipeline
+  )    
+}
+
+Pipeline {
   V_EX_Arith_subpipeline (
     V_EX_Arith_Unpack_Enter_stg ->
     V_EX_Arith_Unpack_Leave_stg ->
-    V_EX_Arith_Unit_stg -> 
-    V_EX_Arith_Pack_stg
+    V_EX_Arith_Unit_stg
   ),
   V_EX_LSU_ELM_subpipeline (
     V_EX_LSU_ELM_Unpack_Enter_stg ->
@@ -537,7 +557,7 @@ Resource {
 }
 
 Microaction {
-  uA_V_IQ_Queue               (V_IQ_Queue)
+  uA_V_IQ_Queue (V_IQ_Queue)
 }
 
 Stage {
@@ -604,7 +624,8 @@ ConnectorModel regModel (
 ConnectorModel vectorRegModel (
   link : "models/Vicuna/VectorRegisterModel.h"
   trace : {vs1, vs2, vs3, vd, vm, vtype, lsWidth, nf}
-  connectorIn : {Vd,
+  connectorIn : {
+    Vd,
     VdGroupDiv,
     VdGroupArith,
     VdGroupArithWidening,
@@ -618,7 +639,6 @@ ConnectorModel vectorRegModel (
     Vs2,
     Vs3,
     MaskReg,
-    Vd,
     MaxVdGroup,
     MaxVdGroupNf,
     MaxVdGroupLoadStore,
@@ -639,6 +659,7 @@ ConnectorModel vectorRegModel (
     // Arith Unpack
     AllowedEnterTimeArithUnpack,
     EnterArithUnpack,
+    EnterArithUnpackExt,
     EnterArithUnpackVs2,
     EnterArithUnpackVs1Vs2,
     LeaveArithUnpack,
@@ -928,7 +949,7 @@ InstrGroup {
 }
 
 MicroactionMapping {
-  [ALL] :        {uA_IF_IFetch, uA_IF_PCGen, uA_EX_XifCommit},
+  [ALL] :        {uA_IF_IFetch, uA_IF_PCGen},
   Arith_Ra_Rb :  {uA_ID_Decode, uA_ID_Req_SReg_A, uA_ID_Req_SReg_B, uA_EX_ALU_RegUpdate, uA_EX_Req_WbFreeSignal, uA_WB_Nop},
   Arith_Ra :     {uA_ID_Decode, uA_ID_Req_SReg_A, uA_EX_ALU_RegUpdate, uA_EX_Req_WbFreeSignal, uA_WB_Nop},
   Arith_X :      {uA_ID_Decode, uA_EX_ALU_RegUpdate, uA_EX_Req_WbFreeSignal, uA_WB_Nop},
@@ -948,6 +969,7 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_WB_Nop,
     /* Vector */
@@ -960,8 +982,8 @@ MicroactionMapping {
     uA_V_EX_Arith_Enter_Unpack_Vs1_Vs2,
     uA_V_EX_Arith_Leave_Unpack,
     uA_V_EX_DIV_SetGroup,
-    uA_V_EX_DIV_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_DIV_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_Div_vx : {
@@ -969,6 +991,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_WB_Nop,
     /* Vector */
@@ -982,8 +1005,8 @@ MicroactionMapping {
     uA_V_EX_Arith_Enter_Unpack_Vs2,
     uA_V_EX_Arith_Leave_Unpack,
     uA_V_EX_DIV_SetGroup,
-    uA_V_EX_DIV_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_DIV_Use
+    // uA_V_EX_Arith_Pack
   },
 
   // Same as regular ALU, but only dependend on vs2  
@@ -991,6 +1014,7 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1000,19 +1024,20 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_AllowedEnterTime_ArithUnpack,
     uA_V_DISP_Dispatch,
-    uA_V_EX_Arith_Enter_Unpack_Vs2,
+    uA_V_EX_Arith_Enter_Unpack_Ext,
     uA_V_EX_Arith_Leave_Unpack,
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_vmv_v_i : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1027,14 +1052,15 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_vmv_s_x : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1048,15 +1074,16 @@ MicroactionMapping {
     uA_V_EX_Arith_Leave_Unpack,
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
-    uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_SetVd,
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_vmv_x_s : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1077,6 +1104,7 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1091,16 +1119,18 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
    V_MUL_vv : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
+    uA_WB_XifCommit,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
@@ -1115,8 +1145,8 @@ MicroactionMapping {
     uA_V_EX_MUL_Buffer_Out,
     // uA_V_EX_MUL_Req_VregWritePortFree,
     uA_V_EX_MUL_SetGroup,
-    uA_V_EX_MUL_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_MUL_Use
+    // uA_V_EX_Arith_Pack
   },
 
   // Same as V_ALU_vv, but reiterated, since it needs to double LMUL
@@ -1124,6 +1154,7 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1138,14 +1169,15 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_Widening_SetGroup,
-    uA_V_EX_ALU_Widening_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Widening_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_MUL_Widening_vv : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1161,14 +1193,15 @@ MicroactionMapping {
     uA_V_EX_MUL_Buffer_In,
     uA_V_EX_MUL_Buffer_Out,
     uA_V_EX_MUL_Widening_SetGroup,
-    uA_V_EX_MUL_Widening_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_MUL_Widening_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_ALU_vx : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1183,8 +1216,8 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_Arith_Widening_vx : {
@@ -1192,6 +1225,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Req_SReg_A,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1207,14 +1241,15 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_Widening_SetGroup,
-    uA_V_EX_ALU_Widening_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Widening_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_Arith_vi : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1230,14 +1265,15 @@ MicroactionMapping {
     uA_V_EX_ALU_Buffer_Ops,
     uA_V_EX_ALU_Buffer_Intermediate,
     uA_V_EX_ALU_SetGroup,
-    uA_V_EX_ALU_Use,
-    uA_V_EX_Arith_Pack
+    uA_V_EX_ALU_Use
+    // uA_V_EX_Arith_Pack
   },
 
   V_RED_vv : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1251,8 +1287,8 @@ MicroactionMapping {
     uA_V_EX_LSU_ELM_Leave_Unpack,
     uA_V_EX_ELM_SetGroupReduce,
     uA_V_EX_ELM_Use,
-    uA_V_EX_LSU_ELM_Pack,
-    uA_V_RES_Nop
+    uA_V_EX_LSU_ELM_Pack
+    // uA_V_RES_Nop
   },
                 
   V_Load : {
@@ -1260,6 +1296,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Req_SReg_A,
     uA_ID_Decode,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1289,6 +1326,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
     uA_ID_Req_SReg_A,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1315,6 +1353,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Req_SReg_A,
     uA_ID_Decode, 
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
@@ -1339,6 +1378,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Decode, 
     uA_ID_Req_SReg_A,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_Nop,
