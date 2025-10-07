@@ -1064,10 +1064,9 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
-    // uA_EX_XifCommit,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
-    uA_WB_XifCommit,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
@@ -1088,10 +1087,9 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
-    // uA_EX_XifCommit,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
-    uA_WB_XifCommit,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
@@ -1281,10 +1279,9 @@ MicroactionMapping {
     /* Scalar */
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
-    // uA_EX_XifCommit,
+    uA_EX_XifCommit,
     uA_EX_Req_WbFreeSignal,
     uA_EX_Nop,
-    uA_WB_XifCommit,
     uA_WB_Nop,
     /* Vector */
     uA_V_ID_Decode,
