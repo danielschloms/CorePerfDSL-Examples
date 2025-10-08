@@ -225,8 +225,8 @@ Microaction {
   // uA_V_EX_LSU_MemArbiter_Signal           (V_EX_LSU_MemArbiter_Signaller -> MemArbiterSignal),
   uA_V_EX_LSU_Load_SetGroup               (V_EX_LSU_RegWriter -> VdGroupLoad),
   uA_V_EX_LSU_Load_Nf_SetGroup            (V_EX_LSU_RegWriter -> VdGroupLoadNf),
-  uA_V_EX_LSU_Use                         (V_EX_LSU_Mem -> ReqStallEnd),
-  uA_V_EX_LSU_Use_Nf                      (V_EX_LSU_Mem_Nf -> ReqStallEnd),
+  uA_V_EX_LSU_Use                         (V_EX_LSU_Mem),
+  uA_V_EX_LSU_Use_Nf                      (V_EX_LSU_Mem_Nf),
   uA_V_EX_LSU_Buffer_Request              (V_EX_LSU_REQ_Buffer -> FreeLastLsuElmUnpackStage),
   uA_V_EX_LSU_REQ_Buffer_Req_ReqStallEnd  (ReqStallEnd),
   uA_V_EX_LSU_Buffer_Response             (V_EX_LSU_RESP_Buffer),
@@ -298,7 +298,7 @@ Microaction {
   uA_V_EX_LSU_ELM_Leave_Unpack           (LeaveLsuElmUnpack),
 
   uA_V_EX_LSU_ELM_Pack                   (V_EX_LSU_ELM_Packer),
-  uA_V_EX_LSU_ELM_Pack_CompleteLoad      (V_EX_LSU_ELM_Packer -> CompleteLoad),
+  uA_V_EX_LSU_ELM_Pack_CompleteLoad      (ReqStallEnd),
 
   // Arithmetic Pipeline
   uA_V_EX_Arith_Enter_Unpack             (V_EX_Arith_Unpack_ShiftRegister -> EnterArithUnpack),
@@ -1323,10 +1323,7 @@ MicroactionMapping {
     uA_V_EX_LSU_REQ_Buffer_Req_ReqStallEnd,
     uA_V_EX_LSU_MemRequest,
     uA_V_EX_LSU_Load_SetGroup,
-    // uA_V_EX_LSU_MemArbiter_Signal,
     uA_V_EX_LSU_Use,
-    // uA_V_EX_LSU_Buffer_Response,
-    // uA_V_EX_LSU_End_Stalls_Load,
     uA_V_EX_LSU_ELM_Pack_CompleteLoad,
     uA_V_RES_WbFreeSignalSync
   },
