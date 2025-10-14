@@ -216,6 +216,7 @@ Resource {
 
   // ELM Unit Pipeline
   V_EX_ELM                (vectorElmModel),
+  V_EX_ELM_Skip           (1),
   V_EX_ELM_RegWriter      (0)
 }
 
@@ -236,6 +237,7 @@ Microaction {
 
   // ELM Unit Pipeline
   uA_V_EX_ELM_Use                         (V_EX_ELM),
+  uA_V_EX_ELM_Skip                        (V_EX_ELM_Skip),
   uA_V_EX_ELM_SetGroup                    (V_EX_ELM_RegWriter -> VdGroupElm),
   uA_V_EX_ELM_SetGroupReduce              (V_EX_ELM_RegWriter -> VdGroupReduce)
 }
@@ -264,7 +266,8 @@ Stage {
   V_EX_ELM_stg (
     uA_V_EX_ELM_Use, 
     uA_V_EX_ELM_SetGroup,
-    uA_V_EX_ELM_SetGroupReduce
+    uA_V_EX_ELM_SetGroupReduce,
+    uA_V_EX_ELM_Skip
   )
 }
 
@@ -510,7 +513,8 @@ Microaction {
   uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack (AllowedEnterTimeLsuElmUnpack),
   uA_V_DISP_Req_AllowedEnterTime_ArithUnpack  (AllowedEnterTimeArithUnpack),
   uA_V_DISP_Req_WbFreeSignal                  (WbFreeSignal),
-  uA_V_DISP_Req_CompleteLoad                  (CompleteLoad)
+  uA_V_DISP_Req_CompleteLoad                  (CompleteLoad),
+  uA_V_DISP_Req_XifCommitSignal               (XifCommitSignal)
 }
 
 Stage {
@@ -526,7 +530,8 @@ Stage {
     uA_V_DISP_Req_MaskReg,
     uA_V_DISP_Req_AllowedEnterTime_LsuElmUnpack,
     uA_V_DISP_Req_AllowedEnterTime_ArithUnpack,
-    uA_V_DISP_Req_WbFreeSignal
+    uA_V_DISP_Req_WbFreeSignal,
+    uA_V_DISP_Req_XifCommitSignal
   )
 }
 
@@ -635,7 +640,8 @@ ConnectorModel vectorRegModel (
     VdGroupElm,
     VdGroupReduce,
     VdGroupLoad,
-    VdGroupLoadNf
+    VdGroupLoadNf,
+    XifCommitSignal
   }
   connectorOut : {
     Vs1,
@@ -1074,6 +1080,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_AllowedEnterTime_ArithUnpack,
+    uA_V_DISP_Req_XifCommitSignal,
     uA_V_DISP_Dispatch,
     uA_V_EX_Arith_Enter_Unpack,
     uA_V_EX_Arith_Leave_Unpack,
@@ -1089,7 +1096,7 @@ MicroactionMapping {
     uA_IF_Req_VsetSignal,
     uA_ID_Decode,
     // uA_EX_XifCommit,
-    uA_EX_Req_WbFreeSignal,
+    uA_EX_Req_WbFreeSignalSync,
     uA_EX_Nop,
     uA_WB_XifCommit,
     uA_WB_Nop,
@@ -1100,7 +1107,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     uA_V_EX_LSU_ELM_Enter_Unpack_Vs2,
     uA_V_EX_LSU_ELM_Leave_Unpack,
-    uA_V_EX_ELM_Use,
+    uA_V_EX_ELM_Skip,
     uA_V_EX_LSU_ELM_Pack,
     uA_V_RES_Return_Result,
     uA_V_RES_WbFreeSignalSync
