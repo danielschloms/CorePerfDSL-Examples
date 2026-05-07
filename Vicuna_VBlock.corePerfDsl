@@ -365,7 +365,8 @@ ConnectorModel vectorBlockModel (
   connectorIn : {
     BlockEntry,
     VsetSignal,
-    WbFreeSignal
+    WbFreeSignal,
+    MemArbiterSignal
   }
   connectorOut : {
     VBlockALU_vv,
@@ -388,14 +389,9 @@ ConnectorModel vectorBlockModel (
     MaxVdGroupLoad,
     // Signals
     VsetSignal,
-    WbFreeSignal
+    WbFreeSignal,
+    MemArbiterSignal
   }
-)
-
-ConnectorModel vectorSignaller (
-  link : "models/Vicuna/VectorSignaller.h"
-  connectorIn : {MemArbiterSignal}
-  connectorOut : {MemArbiterSignal}
 )
 
 ConnectorModel staBranchPredModel (
@@ -1269,8 +1265,7 @@ CorePerfModel Vicuna_zvl64b (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel, 
-    vectorSignaller
+    staBranchPredModel
   }
 )
 
@@ -1280,8 +1275,7 @@ CorePerfModel Vicuna_zvl128b (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel, 
-    vectorSignaller
+    staBranchPredModel
   }
 )
 
@@ -1291,8 +1285,7 @@ CorePerfModel Vicuna_zvl256b (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel, 
-    vectorSignaller
+    staBranchPredModel
   }
 )
 
@@ -1302,8 +1295,7 @@ CorePerfModel Vicuna_zvl512b (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel, 
-    vectorSignaller
+    staBranchPredModel
   }
 )
 
@@ -1313,8 +1305,7 @@ CorePerfModel Vicuna_zvl1024b (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel, 
-    vectorSignaller
+    staBranchPredModel
   }
 )
 
@@ -1325,8 +1316,7 @@ CorePerfModel Vicuna (
   use ConnectorModel : {
     regModel, 
     vectorBlockModel, 
-    staBranchPredModel,
-    vectorSignaller
+    staBranchPredModel
   }
 )
 */
