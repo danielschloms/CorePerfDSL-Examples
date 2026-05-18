@@ -24,11 +24,11 @@ Connector {Xa, Xb, Xd}
 Connector {
   VBlockALU_vv,
   VBlockALU_vx,
-  VBlockALU_i,
   VBlockDIV_vv,
   VBlockDIV_vx,
   VBlockMUL_vv,
   VBlockMUL_vx,
+  VBlockVMV_V_I,
   VBlockVMV_S_X,
   VBlockVMV_X_S,
   VBlockStore,
@@ -40,15 +40,15 @@ Connector {
   MaxVdGroup,
   MaxVdGroupWide,
   MaxVdGroupNf,
-  MaxVdGroupLoad,
-  BlockEntry
+  MaxVdGroupLoad
 }
 
 // Signaller
 Connector {
   WbFreeSignal,
   MemArbiterSignal,
-  VsetSignal
+  VsetSignal,
+  Dispatch1Ready
 }
 
 Resource {PCGen, Decoder, JumpDecoder}
@@ -158,38 +158,17 @@ Stage {
 
 /* Vector Pipeline */
 
-/* Vector RES */
-Resource {
-  V_RES_Nop,
-  V_RES_Return_Result,
-  V_RES_Signaller,
-  V_RES_LSUSignaller
-}
-
-Microaction {
-  uA_V_RES_Nop              (V_RES_Nop),
-  uA_V_RES_Return_Result    (V_RES_Return_Result -> Xd),
-  uA_V_RES_WbFreeSignal     (V_RES_Signaller -> WbFreeSignal)
-}
-
-Stage {
-  V_RES_stg (
-    uA_V_RES_Nop,
-    uA_V_RES_Return_Result,
-    uA_V_RES_WbFreeSignal
-  )
-}
-
 /* Vector DISP */
 Resource {Dispatcher}
 
 Microaction {
-  uA_V_DISP_Dispatch            (Dispatcher),
-  uA_V_DISP_Req_MaxVdGroup      (MaxVdGroup),
-  uA_V_DISP_Req_MaxVdGroupWide  (MaxVdGroupWide),
-  uA_V_DISP_Req_MaxVdGroupNf    (MaxVdGroupNf),
-  uA_V_DISP_Req_MaxVdGroupLoad  (MaxVdGroupLoad),
-  uA_V_DISP_Req_WbFreeSignal    (WbFreeSignal)
+  uA_V_DISP_Dispatch             (Dispatcher),
+  uA_V_DISP_Req_MaxVdGroup       (MaxVdGroup),
+  uA_V_DISP_Req_MaxVdGroupWide   (MaxVdGroupWide),
+  uA_V_DISP_Req_MaxVdGroupNf     (MaxVdGroupNf),
+  uA_V_DISP_Req_MaxVdGroupLoad   (MaxVdGroupLoad),
+  uA_V_DISP_Req_Dispatch1Ready   (Dispatch1Ready),
+  uA_V_DISP_Req_WbFreeSignal     (WbFreeSignal)
 }
 
 Stage {
@@ -199,6 +178,7 @@ Stage {
     uA_V_DISP_Req_MaxVdGroupWide,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Req_MaxVdGroupLoad,
+    uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Req_WbFreeSignal
   )
 }
@@ -245,34 +225,28 @@ Stage {
 /* Vector Batch Block */
 
 Resource {
-  VBlockEntry1(0),
-  VBlockEntry2(0)
+  VEX(0)
 }
 
 Microaction {
-  uA_VBlockLoad     (VBlockLoad),
-  uA_VBlockLoadNf   (VBlockLoadNf),
-  uA_VBlockStore    (VBlockStore),
-  uA_VBlockStoreNf  (VBlockStoreNf),
-  uA_VBlockELM_vv   (VBlockELM_vv),
-  uA_VBlockALU_vv   (VBlockALU_vv),
-  uA_VBlockALU_vx   (VBlockALU_vx),
-  uA_VBlockALU_i    (VBlockALU_i),
-  uA_VBlockMUL_vv   (VBlockMUL_vv),
-  uA_VBlockMUL_vx   (VBlockMUL_vx),
-  uA_VBlockDIV_vv   (VBlockDIV_vv),
-  uA_VBlockDIV_vx   (VBlockDIV_vx),
-  uA_VBlockVMV_S_X  (VBlockVMV_S_X),
-  uA_VBlockVMV_X_S  (VBlockVMV_X_S),
-  uA_Block_1_Entry  (VBlockEntry1 -> BlockEntry),
-  uA_Block_2_Entry  (VBlockEntry2 -> BlockEntry)
+  uA_VBlockLoad     (VEX -> VBlockLoad),
+  uA_VBlockLoadNf   (VEX -> VBlockLoadNf),
+  uA_VBlockStore    (VEX -> VBlockStore),
+  uA_VBlockStoreNf  (VEX -> VBlockStoreNf),
+  uA_VBlockELM_vv   (VEX -> VBlockELM_vv),
+  uA_VBlockALU_vv   (VEX -> VBlockALU_vv),
+  uA_VBlockALU_vx   (VEX -> VBlockALU_vx),
+  uA_VBlockMUL_vv   (VEX -> VBlockMUL_vv),
+  uA_VBlockMUL_vx   (VEX -> VBlockMUL_vx),
+  uA_VBlockDIV_vv   (VEX -> VBlockDIV_vv),
+  uA_VBlockDIV_vx   (VEX -> VBlockDIV_vx),
+  uA_VBlockVMV_V_I  (VEX -> VBlockVMV_V_I),
+  uA_VBlockVMV_S_X  (VEX -> VBlockVMV_S_X),
+  uA_VBlockVMV_X_S  (VEX -> VBlockVMV_X_S)
 }
 
 Stage {
   // LSU/ELM
-  VBlock_1_Entry (
-    uA_Block_1_Entry
-  ),
   VBlock_1_Execute (
     uA_VBlockLoad,
     uA_VBlockLoadNf,
@@ -283,9 +257,6 @@ Stage {
   ),
 
   // ALU/MUL/DIV/FPU/SLD
-  VBlock_2_Entry (
-    uA_Block_2_Entry
-  ),
   VBlock_2_Execute (
     uA_VBlockALU_vv,
     uA_VBlockALU_vx,
@@ -293,6 +264,7 @@ Stage {
     uA_VBlockMUL_vx,
     uA_VBlockDIV_vv,
     uA_VBlockDIV_vx,
+    uA_VBlockVMV_V_I,
     uA_VBlockVMV_S_X
   )
 }
@@ -316,16 +288,12 @@ Stage {
   )
 }
 
-Pipeline V1 (VBlock_1_Entry -> VBlock_1_Execute)
-Pipeline V2 (VBlock_2_Entry -> VBlock_2_Execute)
-Stage V1_S (V1)
-Stage V2_S (V2)
-Pipeline V1_P (V1_S -> V_RES_stg)
-Pipeline V2_P (V2_S)
+Pipeline V1 (VBlock_1_Execute)
+Pipeline V2 (VBlock_2_Execute)
 
 Pipeline Scalar_pipeline (ID_stg -> EX_stg -> WB_stg)
 
-Pipeline Vector_Parallel_Unit_pipeline (V1_P | V2_P)
+Pipeline Vector_Parallel_Unit_pipeline (V1 | V2)
 
 Pipeline Vector_pipeline (V_ID_stg -> V_IQ_stg -> V_DISP_stg -> Vector_Parallel_Unit_pipeline)
 
@@ -363,18 +331,13 @@ ConnectorModel vectorBlockModel (
   link : "models/Vicuna/VectorBlockModel.h"
   trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf}
   connectorIn : {
-    BlockEntry,
-    VsetSignal,
-    WbFreeSignal,
-    MemArbiterSignal
-  }
-  connectorOut : {
     VBlockALU_vv,
     VBlockDIV_vv,
     VBlockMUL_vv,
     VBlockALU_vx,
     VBlockDIV_vx,
     VBlockMUL_vx,
+    VBlockVMV_V_I,
     VBlockVMV_S_X,
     VBlockVMV_X_S,
     VBlockStore,
@@ -382,6 +345,11 @@ ConnectorModel vectorBlockModel (
     VBlockLoad,
     VBlockLoadNf,
     VBlockELM_vv,
+    VsetSignal,
+    WbFreeSignal,
+    MemArbiterSignal
+  }
+  connectorOut : {
     // WAW - Dispatch
     MaxVdGroup,
     MaxVdGroupWide,
@@ -390,7 +358,8 @@ ConnectorModel vectorBlockModel (
     // Signals
     VsetSignal,
     WbFreeSignal,
-    MemArbiterSignal
+    MemArbiterSignal,
+    Dispatch1Ready
   }
 )
 
@@ -692,7 +661,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockALU_vx
   },
 
@@ -708,7 +676,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockALU_vx
   },
 
@@ -724,8 +691,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
-    uA_VBlockALU_i
+    uA_VBlockVMV_V_I
   },
 
   V_vmv_s_x : {
@@ -740,7 +706,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockVMV_S_X
   },
 
@@ -754,11 +719,9 @@ MicroactionMapping {
     /* Vector */
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
+    uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
-    uA_VBlockVMV_X_S,
-    uA_V_RES_Return_Result,
-    uA_V_RES_WbFreeSignal
+    uA_VBlockVMV_X_S
   },
 
   V_ALU_vv : {
@@ -773,7 +736,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockALU_vv
   },
 
@@ -789,7 +751,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockMUL_vv
   },
 
@@ -806,7 +767,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroupWide,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     // TODO: widening
     uA_VBlockALU_vv
   },
@@ -823,7 +783,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     // TODO: widening
     uA_VBlockMUL_vv
   },
@@ -840,7 +799,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockALU_vx
   },
 
@@ -857,7 +815,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     // TODO: widening
     uA_VBlockALU_vx
   },
@@ -874,7 +831,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_2_Entry,
     uA_VBlockALU_vx
   },
 
@@ -890,7 +846,6 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
     uA_VBlockELM_vv
   },
                 
@@ -908,9 +863,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroupLoad,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
-    uA_VBlockLoad,
-    uA_V_RES_WbFreeSignal
+    uA_VBlockLoad
   },
 
   V_Load_Registers : {
@@ -927,9 +880,7 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
-    uA_VBlockLoadNf,
-    uA_V_RES_WbFreeSignal
+    uA_VBlockLoadNf
   },
 
   V_Store : {
@@ -944,10 +895,9 @@ MicroactionMapping {
     uA_V_ID_Req_SReg_A,
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
+    uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
-    uA_VBlockStore,
-    uA_V_RES_WbFreeSignal
+    uA_VBlockStore
   },
 
   V_Store_Registers : {
@@ -962,10 +912,9 @@ MicroactionMapping {
     uA_V_ID_Req_SReg_A,
     uA_V_ID_Decode,
     uA_V_IQ_Queue,
+    uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
-    uA_Block_1_Entry,
-    uA_VBlockStoreNf,
-    uA_V_RES_WbFreeSignal
+    uA_VBlockStoreNf
   },
 
   V_vsetivli : {
