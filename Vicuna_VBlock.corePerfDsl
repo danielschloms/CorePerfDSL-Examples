@@ -394,6 +394,7 @@ InstrGroup {
   Store (sb, sh, sw),
   Load (lw, lh, lhu, lb, lbu),
   Branch_Ra_Rb (beq, bne, blt, bge, bltu, bgeu),
+
   V_Load (vle32_v, vle16_v, vle8_v),
   V_Load_Registers (vl8r_v, vl16r_v, vl32r_v),
   V_Store (vse32_u, vse16_u, vse8_u),
@@ -525,21 +526,6 @@ InstrGroup {
     vmin_vx,
     vmaxu_vx,
     vmax_vx,
-    vmul_vx,
-    vmulh_vx,
-    vmulhu_vx,
-    vmulhsu_vx,
-    vwmul_vx, 
-    vwmulu_vx,
-    vwmulsu_vx,
-    vmacc_vx,
-    vnmsac_vx,
-    vmadd_vx,
-    vnmsub_vx,
-    vwmaccu_vx,
-    vwmacc_vx,
-    vwmaccsu_vx,
-    vwmaccus_vx,
     vmerge_vxm,
     vsaddu_vx,
     vsadd_vx,
@@ -558,6 +544,17 @@ InstrGroup {
     vslide1down_vx
   ),
 
+  V_MUL_vx (
+    vmul_vx,
+    vmulh_vx,
+    vmulhu_vx,
+    vmulhsu_vx,
+    vmacc_vx,
+    vnmsac_vx,
+    vmadd_vx,
+    vnmsub_vx
+  ),
+
   V_ALU_Widening_vx (
     vwaddu_vx,
     vwsubu_vx,
@@ -567,6 +564,16 @@ InstrGroup {
     vwsubu_w_vx,
     vwadd_w_vx,
     vwsub_w_vx
+  ),
+
+  V_MUL_Widening_vx (
+    vwmul_vx, 
+    vwmulu_vx,
+    vwmulsu_vx,
+    vwmaccu_vx,
+    vwmacc_vx,
+    vwmaccsu_vx,
+    vwmaccus_vx
   ),
 
   V_ALU_vi (
@@ -802,6 +809,21 @@ MicroactionMapping {
     uA_VBlockALU_vx
   },
 
+  V_MUL_vx : {
+    /* Scalar */
+    uA_IF_Req_VsetSignal,
+    uA_ID_Decode,
+    uA_EX_Req_WbFreeSignal,
+    uA_EX_Nop,
+    uA_WB_Nop,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroup,
+    uA_V_DISP_Dispatch,
+    uA_VBlockMUL_vx
+  },
+
   V_ALU_Widening_vx : {
     /* Scalar */
     uA_IF_Req_VsetSignal,
@@ -817,6 +839,23 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // TODO: widening
     uA_VBlockALU_vx
+  },
+
+  V_MUL_Widening_vx : {
+    /* Scalar */
+    uA_IF_Req_VsetSignal,
+    uA_ID_Req_SReg_A,
+    uA_ID_Decode,
+    uA_EX_Req_WbFreeSignal,
+    uA_EX_Nop,
+    uA_WB_Nop,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroup,
+    uA_V_DISP_Dispatch,
+    // TODO: widening
+    uA_VBlockMUL_vx
   },
 
   V_ALU_vi : {
@@ -1167,7 +1206,23 @@ TraceValueMapping {
     vtype = "$csr{0xC21}"
   },
 
+  V_MUL_vx : {
+    vs2 = "$bitfield{vs2}",
+    rs1 = "$bitfield{rs1}",
+    vd  = "$bitfield{vd}",
+    // VTYPE CSR Address = 0xC21
+    vtype = "$csr{0xC21}"
+  },
+
   V_ALU_Widening_vx : {
+    vs2 = "$bitfield{vs2}",
+    rs1 = "$bitfield{rs1}",
+    vd  = "$bitfield{vd}",
+    // VTYPE CSR Address = 0xC21
+    vtype = "$csr{0xC21}"
+  },
+
+  V_MUL_Widening_vx : {
     vs2 = "$bitfield{vs2}",
     rs1 = "$bitfield{rs1}",
     vd  = "$bitfield{vd}",
