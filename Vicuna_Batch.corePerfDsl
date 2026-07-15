@@ -26,6 +26,7 @@ Connector {
   Vs1,
   Vs2,
   Vs3,
+  Vd,
   // WAW - Dispatch Stage
   MaxVdGroup,
   MaxVdGroupWide,
@@ -234,74 +235,105 @@ Stage {
   )
 }
 
-/* V1 uActions and Stages */
+/* V1 Resource, uActions, and Stages */
+Resource {
+  V1_Unpack_1     (1),
+  V1_Unpack_2     (1),
+  V1_Unpack_3     (1),
+  V1_LSU_BUF_REQ  (vectorFixedDelayV1),
+  V1_LSU_BUF_RESP (1),
+  V1_ELM          (vectorElmDelay),
+  V1_ELM_Skip     (1),
+  V1_Pack_Write   (1),
+  V1_Pack_FreeWb  (1),
+  V1_Res          (1)
+}
+
 Microaction {
-  uA_V1_Unpack_1         (1),
+  uA_V1_Unpack_1         (V1_Unpack_1),
+  uA_V1_Unpack_2         (V1_Unpack_2),
+  uA_V1_Unpack_3         (V1_Unpack_3),
   uA_V1_Unpack_Req_Vs1   (Vs1),
-  uA_V1_Unpack_2         (1),
   uA_V1_Unpack_Req_Vs2   (Vs2),
-  uA_V1_Unpack_3         (1),
   uA_V1_Unpack_Req_Vs3   (Vs3),
-  uA_V1_LSU_BUF_REQ      (1),
-  uA_V1_LSU_REQ          (1),
-  uA_V1_LSU_BUF_RESP     (1),
-  uA_V1_ELM              (1),
-  uA_V1_ELM_Skip         (1)
+  uA_V1_LSU_BUF_REQ      (V1_LSU_BUF_REQ),
+  uA_V1_LSU_BUF_RESP     (V1_LSU_BUF_RESP),
+  uA_V1_ELM              (V1_ELM),
+  uA_V1_ELM_Skip         (V1_ELM_Skip),
+  uA_V1_Pack_Write       (V1_Pack_Write -> Vd),
+  uA_V1_Pack_FreeWb      (V1_Pack_FreeWb -> WbFreeSignal)
 }
 
 Stage {
-  V1_Unpack_1_stg         (uA_V1_Unpack_1, uA_V1_Req_Vs1),
-  V1_Unpack_2_stg         (uA_V1_Unpack_2, uA_V1_Req_Vs2),
-  V1_Unpack_3_stg         (uA_V1_Unpack_3),
+  V1_Unpack_1_stg         (uA_V1_Unpack_1, uA_V1_Unpack_Req_Vs1),
+  V1_Unpack_2_stg         (uA_V1_Unpack_2, uA_V1_Unpack_Req_Vs2),
+  V1_Unpack_3_stg         (uA_V1_Unpack_3, uA_V1_Unpack_Req_Vs3),
   V1_LSU_BUF_REQ_stg      (uA_V1_LSU_BUF_REQ),
-  V1_LSU_REQ_stg          (uA_V1_LSU_REQ),
   V1_LSU_BUF_RESP_stg     (uA_V1_LSU_BUF_RESP),
-  V1_ELM_stg              (uA_V1_ELM, uA_V1_ELM_Skip)
+  V1_ELM_stg              (uA_V1_ELM, uA_V1_ELM_Skip),
+  V1_Pack_stg             (uA_V1_Pack_Write, uA_V1_Pack_FreeWb)
 }
 
-/* V2 uActions and Stages */
+/* V2 Resource, uActions, and Stages */
+Resource {
+  V2_Unpack_1     (1),
+  V2_Unpack_2     (1),
+  V2_Unpack_3     (1),
+  V2_MUL_BUF_OP   (vectorFixedDelayV2),
+  V2_MUL_BUF_IN   (1),
+  V2_MUL_BUF_OUT  (1),
+  V2_MUL_BUF_RES  (1),
+  V2_ALU_BUF_OP   (vectorFixedDelayV2),
+  V2_ALU_BUF_INT  (1),
+  V2_ALU_BUF_RES  (1),
+  V2_DIV          (vectorDivDelay),
+  V2_Pack         (1)
+}
+
 Microaction {
-  uA_V2_Unpack_1        (1),
+  uA_V2_Unpack_1        (V2_Unpack_1),
+  uA_V2_Unpack_2        (V2_Unpack_2),
+  uA_V2_Unpack_3        (V2_Unpack_3),
   uA_V2_Unpack_Req_Vs1  (Vs1),
-  uA_V2_Unpack_2        (1),
   uA_V2_Unpack_Req_Vs2  (Vs2),
-  uA_V2_Unpack_3        (1),
-  uA_V2_MUL_BUF_OP      (1),
-  uA_V2_MUL_BUF_IN      (1),
-  uA_V2_MUL_BUF_OUT     (1),
-  uA_V2_MUL_BUF_RES     (1),
-  uA_V2_ALU_BUF_OP      (1),
-  uA_V2_ALU_BUF_INT     (1),
-  uA_V2_ALU_BUF_RES     (1),
-  uA_V2_DIV             (1)
+  uA_V2_MUL_BUF_OP      (V2_MUL_BUF_OP),
+  uA_V2_MUL_BUF_IN      (V2_MUL_BUF_IN),
+  uA_V2_MUL_BUF_OUT     (V2_MUL_BUF_OUT),
+  uA_V2_MUL_BUF_RES     (V2_MUL_BUF_RES),
+  uA_V2_ALU_BUF_OP      (V2_ALU_BUF_OP),
+  uA_V2_ALU_BUF_INT     (V2_ALU_BUF_INT),
+  uA_V2_ALU_BUF_RES     (V2_ALU_BUF_RES),
+  uA_V2_DIV             (V2_DIV),
+  uA_V2_Pack            (V2_Pack -> Vd)
 }
 
 Stage {
-  V2_Unpack_1_stg    (uA_V2_Unpack_1, uA_V2_Req_Vs1),
-  V2_Unpack_2_stg    (uA_V2_Unpack_2, uA_V2_Req_Vs2),
+  V2_Unpack_1_stg    (uA_V2_Unpack_1, uA_V2_Unpack_Req_Vs1),
+  V2_Unpack_2_stg    (uA_V2_Unpack_2, uA_V2_Unpack_Req_Vs2),
   V2_Unpack_3_stg    (uA_V2_Unpack_3),
   V2_MUL_BUF_OP_stg  (uA_V2_MUL_BUF_OP),
   V2_MUL_BUF_IN_stg  (uA_V2_MUL_BUF_IN),
   V2_MUL_BUF_OUT_stg (uA_V2_MUL_BUF_OUT),
-  V2_MUL_stg         (uA_V2_MUL),
+  V2_MUL_BUF_RES_stg (uA_V2_MUL_BUF_RES),
   V2_ALU_BUF_OP_stg  (uA_V2_ALU_BUF_OP),
   V2_ALU_BUF_INT_stg (uA_V2_ALU_BUF_INT),
   V2_ALU_BUF_RES_stg (uA_V2_ALU_BUF_RES),
-  V2_DIV_stg         (uA_V2_DIV)
+  V2_DIV_stg         (uA_V2_DIV),
+  V2_Pack_stg        (uA_V2_Pack)
 }
 
 /* Vector Functional Units */
-Pipeline V1_LSU (V1_LSU_BUF_REQ_stg -> V1_LSU_REQ_stg -> V1_LSU_BUF_RESP_stg)
-Pipeline V1_ELM (V1_ELM_stg -> V1_ELM_BUF_RESULTS_stg)
+Pipeline V1_LSU (V1_LSU_BUF_REQ_stg -> V1_LSU_BUF_RESP_stg)
+Pipeline V1_ELM (V1_ELM_stg)
 Stage V1_Subpipe (V1_LSU, V1_ELM)
 
-Pipeline V2_ALU (V2_ALU_BUF_OP_stg -> V2_MUL_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
-Pipeline V2_MUL (V2_MUL_BUF_OP_stg -> V2_MUL_BUF_IN_stg -> V2_MUL_stg -> V2_MUL_BUF_OUT_stg)
+Pipeline V2_ALU (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
+Pipeline V2_MUL (V2_MUL_BUF_OP_stg -> V2_MUL_BUF_IN_stg -> V2_MUL_BUF_OUT_stg -> V2_MUL_BUF_RES_stg)
 Pipeline V2_DIV (V2_DIV_stg)
 Stage V2_Subpipe (V2_ALU, V2_MUL, V2_DIV)
 
-Pipeline V1 (V1_Unpack_1_stg -> V1_Unpack_2_stg -> V1_Subpipe)
-Pipeline V2 (V2_Unpack_1_stg -> V2_Unpack_2_stg -> V2_Subpipe)
+Pipeline V1 (V1_Unpack_1_stg -> V1_Unpack_2_stg -> V1_Subpipe -> V1_Pack_stg)
+Pipeline V2 (V2_Unpack_1_stg -> V2_Unpack_2_stg -> V2_Subpipe -> V2_Pack_stg)
 
 Pipeline Scalar_pipeline (ID_stg -> EX_stg -> WB_stg)
 
@@ -339,13 +371,14 @@ ConnectorModel regModel (
   connectorOut : {Xa, Xb}
 )
 
-ConnectorModel vectorBatchModel (
+ConnectorModel vectorBatchHandModel (
   link : "models/Vicuna/VectorBatchHandModel.h"
   trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf}
   connectorIn : {
     VsetSignal,
     WbFreeSignal,
-    MemArbiterSignal
+    MemArbiterSignal,
+    Vd
   }
   connectorOut : {
     // WAW - Dispatch
@@ -380,6 +413,24 @@ ResourceModel divider (
 ResourceModel divider_u (
   link: "models/cv32e40p/DividerUnsignedModel.h"
   trace: rs2_data
+)
+
+ResourceModel vectorFixedDelayV1 (
+  link: "models/Vicuna/VectorFixedDelayV1.h"
+)
+
+ResourceModel vectorFixedDelayV2 (
+  link: "models/Vicuna/VectorFixedDelayV2.h"
+)
+
+ResourceModel vectorElmDelay(
+  link: "models/Vicuna/VectorElmDelay.h"
+  trace: {vtype}
+)
+
+ResourceModel vectorDivDelay(
+  link: "models/Vicuna/VectorDivDelay.h"
+  trace: {vtype}
 )
 
 /*********************************** Instruction Section ***********************************/
@@ -641,9 +692,9 @@ MicroactionMapping {
     uA_V_DISP_Req_Dispatch2Ready,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Req_Vs1,
+    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_DIV,
@@ -664,7 +715,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_DIV,
@@ -686,7 +737,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -709,7 +760,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -777,11 +828,11 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_1,
-    uA_V1_Req_Vs2,
+    uA_V1_Unpack_Req_Vs2,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
     uA_V1_ELM_Skip,
-    uA_V1_Pack
+    uA_V1_Pack_FreeWb
   },
 
   V_ALU_vv : {
@@ -797,9 +848,9 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Req_Vs1,
+    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -821,9 +872,9 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Req_Vs1,
+    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_MUL_BUF_OP,
@@ -848,9 +899,9 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     // TODO: widening
-    uA_V2_Req_Vs1,
+    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -873,9 +924,9 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     // TODO: widening
-    uA_V2_Req_Vs1,
+    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_MUL_BUF_OP,
@@ -899,7 +950,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -922,7 +973,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_MUL_BUF_OP,
@@ -948,7 +999,7 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -973,7 +1024,7 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_MUL_BUF_OP,
@@ -997,7 +1048,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_1,
-    uA_V2_Req_Vs2,
+    uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_ALU_BUF_OP,
@@ -1019,13 +1070,13 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V1_Req_Vs1,
+    uA_V1_Unpack_Req_Vs1,
     uA_V1_Unpack_1,
-    uA_V1_Req_Vs2,
+    uA_V1_Unpack_Req_Vs2,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
     uA_V1_ELM,
-    uA_V1_Pack
+    uA_V1_Pack_Write
   },
                 
   V_Load : {
@@ -1042,7 +1093,14 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroupLoad,
     uA_V_DISP_Dispatch,
-    uA_VBlockLoad
+    // Batched
+    uA_V1_Unpack_1,
+    uA_V1_Unpack_2,
+    uA_V1_Unpack_3,
+    uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_BUF_RESP,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb
   },
 
   V_Load_Registers : {
@@ -1059,7 +1117,14 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Dispatch,
-    uA_VBlockLoadNf
+    // Batched
+    uA_V1_Unpack_1,
+    uA_V1_Unpack_2,
+    uA_V1_Unpack_3,
+    uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_BUF_RESP,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb
   },
 
   V_Store : {
@@ -1076,7 +1141,14 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
-    uA_VBlockStore
+    // Batched
+    uA_V1_Unpack_1,
+    uA_V1_Unpack_2,
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_3,
+    uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_BUF_RESP,
+    uA_V1_Pack_FreeWb
   },
 
   V_Store_Registers : {
@@ -1093,7 +1165,14 @@ MicroactionMapping {
     uA_V_IQ_Queue,
     uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
-    uA_VBlockStoreNf
+    // Batched
+    uA_V1_Unpack_1,
+    uA_V1_Unpack_2,
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_3,
+    uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_BUF_RESP,
+    uA_V1_Pack_FreeWb
   },
 
   V_vsetivli : {
@@ -1408,8 +1487,12 @@ CorePerfModel Vicuna_zvl64b (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 
@@ -1418,8 +1501,12 @@ CorePerfModel Vicuna_zvl128b (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 
@@ -1428,8 +1515,12 @@ CorePerfModel Vicuna_zvl256b (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 
@@ -1438,8 +1529,12 @@ CorePerfModel Vicuna_zvl512b (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 
@@ -1448,8 +1543,12 @@ CorePerfModel Vicuna_zvl1024b (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 
@@ -1459,8 +1558,12 @@ CorePerfModel Vicuna (
   use Pipeline : Full_pipeline
   use ConnectorModel : {
     regModel, 
-    vectorBatchModel, 
-    staBranchPredModel
+    vectorBatchHandModel, 
+    staBranchPredModel,
+    vectorFixedDelayV1,
+    vectorFixedDelayV2,
+    vectorElmDelay,
+    vectorDivDelay
   }
 )
 */
