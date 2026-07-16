@@ -240,23 +240,29 @@ Resource {
   V1_Unpack_1     (1),
   V1_Unpack_2     (1),
   V1_Unpack_3     (1),
+  V1_Unpack_4     (1),
+  V1_Unpack_5     (1),
   V1_LSU_BUF_REQ  (vectorFixedDelayV1),
   V1_LSU_BUF_RESP (1),
   V1_ELM          (vectorElmDelay),
   V1_ELM_Skip     (1),
   V1_Pack_Write   (1),
   V1_Pack_FreeWb  (1),
-  V1_Res          (1)
+  V1_Res          (1),
+  V1_MemAccess    (1)
 }
 
 Microaction {
   uA_V1_Unpack_1         (V1_Unpack_1),
   uA_V1_Unpack_2         (V1_Unpack_2),
   uA_V1_Unpack_3         (V1_Unpack_3),
+  uA_V1_Unpack_4         (V1_Unpack_4),
+  uA_V1_Unpack_5         (V1_Unpack_5),
   uA_V1_Unpack_Req_Vs1   (Vs1),
   uA_V1_Unpack_Req_Vs2   (Vs2),
   uA_V1_Unpack_Req_Vs3   (Vs3),
   uA_V1_LSU_BUF_REQ      (V1_LSU_BUF_REQ),
+  uA_V1_LSU_MemAccess    (V1_MemAccess),
   uA_V1_LSU_BUF_RESP     (V1_LSU_BUF_RESP),
   uA_V1_ELM              (V1_ELM),
   uA_V1_ELM_Skip         (V1_ELM_Skip),
@@ -265,10 +271,13 @@ Microaction {
 }
 
 Stage {
-  V1_Unpack_1_stg         (uA_V1_Unpack_1, uA_V1_Unpack_Req_Vs1),
-  V1_Unpack_2_stg         (uA_V1_Unpack_2, uA_V1_Unpack_Req_Vs2),
-  V1_Unpack_3_stg         (uA_V1_Unpack_3, uA_V1_Unpack_Req_Vs3),
+  V1_Unpack_1_stg         (uA_V1_Unpack_1, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
+  V1_Unpack_2_stg         (uA_V1_Unpack_2),
+  V1_Unpack_3_stg         (uA_V1_Unpack_3),
+  V1_Unpack_4_stg         (uA_V1_Unpack_4),
+  V1_Unpack_5_stg         (uA_V1_Unpack_5),
   V1_LSU_BUF_REQ_stg      (uA_V1_LSU_BUF_REQ),
+  V1_LSU_MemAccess_stg    (uA_V1_LSU_MemAccess),
   V1_LSU_BUF_RESP_stg     (uA_V1_LSU_BUF_RESP),
   V1_ELM_stg              (uA_V1_ELM, uA_V1_ELM_Skip),
   V1_Pack_stg             (uA_V1_Pack_Write, uA_V1_Pack_FreeWb)
@@ -279,6 +288,8 @@ Resource {
   V2_Unpack_1     (1),
   V2_Unpack_2     (1),
   V2_Unpack_3     (1),
+  V2_Unpack_4     (1),
+  V2_Unpack_5     (1),
   V2_MUL_BUF_OP   (vectorFixedDelayV2),
   V2_MUL_BUF_IN   (1),
   V2_MUL_BUF_OUT  (1),
@@ -294,6 +305,8 @@ Microaction {
   uA_V2_Unpack_1        (V2_Unpack_1),
   uA_V2_Unpack_2        (V2_Unpack_2),
   uA_V2_Unpack_3        (V2_Unpack_3),
+  uA_V2_Unpack_4        (V2_Unpack_4),
+  uA_V2_Unpack_5        (V2_Unpack_5),
   uA_V2_Unpack_Req_Vs1  (Vs1),
   uA_V2_Unpack_Req_Vs2  (Vs2),
   uA_V2_MUL_BUF_OP      (V2_MUL_BUF_OP),
@@ -308,9 +321,11 @@ Microaction {
 }
 
 Stage {
-  V2_Unpack_1_stg    (uA_V2_Unpack_1, uA_V2_Unpack_Req_Vs1),
-  V2_Unpack_2_stg    (uA_V2_Unpack_2, uA_V2_Unpack_Req_Vs2),
+  V2_Unpack_1_stg    (uA_V2_Unpack_1, uA_V2_Unpack_Req_Vs1, uA_V2_Unpack_Req_Vs2),
+  V2_Unpack_2_stg    (uA_V2_Unpack_2),
   V2_Unpack_3_stg    (uA_V2_Unpack_3),
+  V2_Unpack_4_stg    (uA_V2_Unpack_4),
+  V2_Unpack_5_stg    (uA_V2_Unpack_5),
   V2_MUL_BUF_OP_stg  (uA_V2_MUL_BUF_OP),
   V2_MUL_BUF_IN_stg  (uA_V2_MUL_BUF_IN),
   V2_MUL_BUF_OUT_stg (uA_V2_MUL_BUF_OUT),
@@ -323,17 +338,19 @@ Stage {
 }
 
 /* Vector Functional Units */
-Pipeline V1_LSU (V1_LSU_BUF_REQ_stg -> V1_LSU_BUF_RESP_stg)
+Pipeline V1_LSU (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
 Pipeline V1_ELM (V1_ELM_stg)
 Stage V1_Subpipe (V1_LSU, V1_ELM)
+Pipeline V1_Unpack (V1_Unpack_1_stg -> V1_Unpack_2_stg -> V1_Unpack_3_stg -> V1_Unpack_4_stg -> V1_Unpack_5_stg)
 
 Pipeline V2_ALU (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
 Pipeline V2_MUL (V2_MUL_BUF_OP_stg -> V2_MUL_BUF_IN_stg -> V2_MUL_BUF_OUT_stg -> V2_MUL_BUF_RES_stg)
 Pipeline V2_DIV (V2_DIV_stg)
 Stage V2_Subpipe (V2_ALU, V2_MUL, V2_DIV)
+Pipeline V2_Unpack (V2_Unpack_1_stg -> V2_Unpack_2_stg -> V2_Unpack_3_stg -> V2_Unpack_4_stg -> V2_Unpack_5_stg)
 
-Pipeline V1 (V1_Unpack_1_stg -> V1_Unpack_2_stg -> V1_Subpipe -> V1_Pack_stg)
-Pipeline V2 (V2_Unpack_1_stg -> V2_Unpack_2_stg -> V2_Subpipe -> V2_Pack_stg)
+Pipeline V1 (V1_Unpack -> V1_Subpipe -> V1_Pack_stg)
+Pipeline V2 (V2_Unpack -> V2_Subpipe -> V2_Pack_stg)
 
 Pipeline Scalar_pipeline (ID_stg -> EX_stg -> WB_stg)
 
@@ -693,10 +710,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs1,
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_DIV,
     uA_V2_Pack
   },
@@ -714,10 +733,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_DIV,
     uA_V2_Pack
   },
@@ -736,10 +757,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -759,10 +782,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -785,6 +810,8 @@ MicroactionMapping {
     uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -808,6 +835,8 @@ MicroactionMapping {
     uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -827,10 +856,12 @@ MicroactionMapping {
     uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V1_Unpack_1,
     uA_V1_Unpack_Req_Vs2,
+    uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_ELM_Skip,
     uA_V1_Pack_FreeWb
   },
@@ -849,10 +880,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs1,
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -873,10 +906,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs1,
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_MUL_BUF_OP,
     uA_V2_MUL_BUF_IN,
     uA_V2_MUL_BUF_OUT,
@@ -900,10 +935,12 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_Req_Vs1,
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -925,10 +962,12 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_Req_Vs1,
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_MUL_BUF_OP,
     uA_V2_MUL_BUF_IN,
     uA_V2_MUL_BUF_OUT,
@@ -949,10 +988,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -972,10 +1013,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_MUL_BUF_OP,
     uA_V2_MUL_BUF_IN,
     uA_V2_MUL_BUF_OUT,
@@ -998,10 +1041,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     // TODO: widening
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -1023,10 +1068,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     // TODO: widening
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_MUL_BUF_OP,
     uA_V2_MUL_BUF_IN,
     uA_V2_MUL_BUF_OUT,
@@ -1047,10 +1094,12 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
     uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
+    uA_V2_Unpack_4,
+    uA_V2_Unpack_5,
     uA_V2_ALU_BUF_OP,
     uA_V2_ALU_BUF_INT,
     uA_V2_ALU_BUF_RES,
@@ -1071,10 +1120,12 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Req_Vs1,
-    uA_V1_Unpack_1,
     uA_V1_Unpack_Req_Vs2,
+    uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_ELM,
     uA_V1_Pack_Write
   },
@@ -1097,7 +1148,10 @@ MicroactionMapping {
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_MemAccess,
     uA_V1_LSU_BUF_RESP,
     uA_V1_Pack_Write,
     uA_V1_Pack_FreeWb
@@ -1121,7 +1175,10 @@ MicroactionMapping {
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_MemAccess,
     uA_V1_LSU_BUF_RESP,
     uA_V1_Pack_Write,
     uA_V1_Pack_FreeWb
@@ -1142,11 +1199,14 @@ MicroactionMapping {
     uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
     // Batched
+    uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
-    uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_MemAccess,
     uA_V1_LSU_BUF_RESP,
     uA_V1_Pack_FreeWb
   },
@@ -1166,11 +1226,14 @@ MicroactionMapping {
     uA_V_DISP_Req_Dispatch1Ready,
     uA_V_DISP_Dispatch,
     // Batched
+    uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
-    uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_3,
+    uA_V1_Unpack_4,
+    uA_V1_Unpack_5,
     uA_V1_LSU_BUF_REQ,
+    uA_V1_LSU_MemAccess,
     uA_V1_LSU_BUF_RESP,
     uA_V1_Pack_FreeWb
   },
