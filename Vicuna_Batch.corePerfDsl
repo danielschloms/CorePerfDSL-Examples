@@ -237,6 +237,8 @@ Stage {
 
 /* V1 Resource, uActions, and Stages */
 Resource {
+  V1_Unpack_Fixed (vectorFixedDelayV1),
+  V1_Unpack_ELM   (vectorElmDelay),
   V1_Unpack_1     (1),
   V1_Unpack_2     (1),
   V1_Unpack_3     (1),
@@ -244,7 +246,7 @@ Resource {
   V1_Unpack_5     (1),
   V1_LSU_BUF_REQ  (vectorFixedDelayV1),
   V1_LSU_BUF_RESP (1),
-  V1_ELM          (vectorElmDelay),
+  V1_ELM          (1),
   V1_ELM_Skip     (1),
   V1_Pack_Write   (1),
   V1_Pack_FreeWb  (1),
@@ -253,6 +255,8 @@ Resource {
 }
 
 Microaction {
+  uA_V1_Unpack_Fixed     (V1_Unpack_Fixed),
+  uA_V1_Unpack_ELM       (V1_Unpack_ELM),
   uA_V1_Unpack_1         (V1_Unpack_1),
   uA_V1_Unpack_2         (V1_Unpack_2),
   uA_V1_Unpack_3         (V1_Unpack_3),
@@ -271,7 +275,7 @@ Microaction {
 }
 
 Stage {
-  V1_Unpack_1_stg         (uA_V1_Unpack_1, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
+  V1_Unpack_1_stg         (uA_V1_Unpack_Fixed, uA_V1_Unpack_ELM, uA_V1_Unpack_1, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
   V1_Unpack_2_stg         (uA_V1_Unpack_2),
   V1_Unpack_3_stg         (uA_V1_Unpack_3),
   V1_Unpack_4_stg         (uA_V1_Unpack_4),
@@ -285,23 +289,27 @@ Stage {
 
 /* V2 Resource, uActions, and Stages */
 Resource {
+  V2_Unpack_Fixed (vectorFixedDelayV2),
+  V2_Unpack_DIV   (vectorDivDelay),
   V2_Unpack_1     (1),
   V2_Unpack_2     (1),
   V2_Unpack_3     (1),
   V2_Unpack_4     (1),
   V2_Unpack_5     (1),
-  V2_MUL_BUF_OP   (vectorFixedDelayV2),
+  V2_MUL_BUF_OP   (1),
   V2_MUL_BUF_IN   (1),
   V2_MUL_BUF_OUT  (1),
   V2_MUL_BUF_RES  (1),
-  V2_ALU_BUF_OP   (vectorFixedDelayV2),
+  V2_ALU_BUF_OP   (1),
   V2_ALU_BUF_INT  (1),
   V2_ALU_BUF_RES  (1),
-  V2_DIV          (vectorDivDelay),
+  V2_DIV          (1),
   V2_Pack         (1)
 }
 
 Microaction {
+  uA_V2_Unpack_Fixed    (V2_Unpack_Fixed),
+  uA_V2_Unpack_DIV      (V2_Unpack_DIV),
   uA_V2_Unpack_1        (V2_Unpack_1),
   uA_V2_Unpack_2        (V2_Unpack_2),
   uA_V2_Unpack_3        (V2_Unpack_3),
@@ -321,7 +329,7 @@ Microaction {
 }
 
 Stage {
-  V2_Unpack_1_stg    (uA_V2_Unpack_1, uA_V2_Unpack_Req_Vs1, uA_V2_Unpack_Req_Vs2),
+  V2_Unpack_1_stg    (uA_V2_Unpack_Fixed, uA_V2_Unpack_DIV, uA_V2_Unpack_1, uA_V2_Unpack_Req_Vs1, uA_V2_Unpack_Req_Vs2),
   V2_Unpack_2_stg    (uA_V2_Unpack_2),
   V2_Unpack_3_stg    (uA_V2_Unpack_3),
   V2_Unpack_4_stg    (uA_V2_Unpack_4),
@@ -346,7 +354,7 @@ Pipeline V1_Unpack (V1_Unpack_1_stg -> V1_Unpack_2_stg -> V1_Unpack_3_stg -> V1_
 Pipeline V2_ALU (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
 Pipeline V2_MUL (V2_MUL_BUF_OP_stg -> V2_MUL_BUF_IN_stg -> V2_MUL_BUF_OUT_stg -> V2_MUL_BUF_RES_stg)
 Pipeline V2_DIV (V2_DIV_stg)
-Stage V2_Subpipe (V2_ALU, V2_MUL, V2_DIV)
+Pipeline V2_Subpipe (V2_ALU | V2_MUL | V2_DIV)
 Pipeline V2_Unpack (V2_Unpack_1_stg -> V2_Unpack_2_stg -> V2_Unpack_3_stg -> V2_Unpack_4_stg -> V2_Unpack_5_stg)
 
 Pipeline V1 (V1_Unpack -> V1_Subpipe -> V1_Pack_stg)
@@ -378,6 +386,7 @@ TraceValue {
   vd, 
   vm,
   nf,
+  simm5,
   lsWidth
 }
 
@@ -390,7 +399,7 @@ ConnectorModel regModel (
 
 ConnectorModel vectorBatchHandModel (
   link : "models/Vicuna/VectorBatchHandModel.h"
-  trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf}
+  trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf, simm5}
   connectorIn : {
     VsetSignal,
     WbFreeSignal,
@@ -711,7 +720,8 @@ MicroactionMapping {
     // Batched
     uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_DIV,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -734,7 +744,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_DIV,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -758,7 +769,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -783,7 +795,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -807,7 +820,8 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -832,7 +846,8 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Dispatch,
     // Batched
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -857,7 +872,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Req_Vs2,
-    uA_V1_Unpack_1,
+    uA_V1_Unpack_ELM,
+    // uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
     uA_V1_Unpack_4,
@@ -881,7 +897,8 @@ MicroactionMapping {
     // Batched
     uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -907,7 +924,8 @@ MicroactionMapping {
     // Batched
     uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -936,7 +954,8 @@ MicroactionMapping {
     // TODO: widening
     uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -963,7 +982,8 @@ MicroactionMapping {
     // TODO: widening
     uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -989,7 +1009,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -1014,7 +1035,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -1042,7 +1064,8 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -1069,7 +1092,8 @@ MicroactionMapping {
     // Batched
     // TODO: widening
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -1095,7 +1119,8 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_1,
+    uA_V2_Unpack_Fixed,
+    // uA_V2_Unpack_1,
     uA_V2_Unpack_2,
     uA_V2_Unpack_3,
     uA_V2_Unpack_4,
@@ -1121,7 +1146,8 @@ MicroactionMapping {
     // Batched
     uA_V1_Unpack_Req_Vs1,
     uA_V1_Unpack_Req_Vs2,
-    uA_V1_Unpack_1,
+    uA_V1_Unpack_ELM,
+    // uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
     uA_V1_Unpack_4,
@@ -1145,6 +1171,7 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroupLoad,
     uA_V_DISP_Dispatch,
     // Batched
+    // uA_V1_Unpack_Fixed,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
@@ -1172,6 +1199,7 @@ MicroactionMapping {
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Dispatch,
     // Batched
+    // uA_V1_Unpack_Fixed,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
@@ -1200,6 +1228,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Req_Vs3,
+    // uA_V1_Unpack_Fixed,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
@@ -1227,6 +1256,7 @@ MicroactionMapping {
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Req_Vs3,
+    // uA_V1_Unpack_Fixed,
     uA_V1_Unpack_1,
     uA_V1_Unpack_2,
     uA_V1_Unpack_3,
@@ -1427,7 +1457,8 @@ TraceValueMapping {
     vs2 = "$bitfield{vs2}",
     vd  = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
-    vtype = "$csr{0xC21}"
+    vtype = "$csr{0xC21}",
+    simm5 = "$bitfield{simm5}"
   },
 
   V_vmv_v_i : {
