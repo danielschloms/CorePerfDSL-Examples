@@ -50,9 +50,6 @@ Resource {DIV(divider), DIVU(divider_u)}
 Resource {LCtrl, DCache(dCacheModel), LUnit}
 Resource {SCtrl, SUnit}
 Resource {Commit}
-Resource {Vset, V_ID_Decoder, V_IQ_Queue, V_IQ_Signaller}
-
-/* === VICUNA2 ADDITION END === */
 
 Microaction {
     uA_PCGen      (PCGen),
@@ -108,7 +105,7 @@ Pipeline IF_subpipe (IF_substage_0 -> IF_substage_1 -> IF_substage_2)
 
 // EX Substages
 Stage {
-    EX_substage_alu    (uA_ALU_def, uA_ALU_reg, uA_ALU_br, uA_ALU_jr, uA_EX_Vset, uA_EX_VsetSignal, uA_EX_Req_VResumeScalar), // VICUNA2 ADDITION
+    EX_substage_alu    (uA_ALU_def, uA_ALU_reg, uA_ALU_br, uA_ALU_jr, uA_ALU_Nop, uA_ALU_Req_VResumeScalar),
     EX_substage_div    (uA_DIV, uA_DIVU),
     EX_substage_mul_i  (uA_MUL_I),
     EX_substage_mul_o  (uA_MUL_O),
@@ -136,12 +133,13 @@ Stage {
     ID_stage  (uA_Decode),
     IS_stage  (uA_Issue, uA_Clobber, uA_OF_A, uA_OF_B),
     EX_stage  [capacity: 8, output-buffer] (EX_subpipe_alu, EX_subpipe_mul, EX_subpipe_div, EX_subpipe_load, EX_subpipe_store),
-    COM_stage [capacity:2] (uA_Commit, uA_Commit_Cb, uA_WB_VsetSignal) // VICUNA2 ADDITION
+    COM_stage [capacity:2] (uA_Commit, uA_Commit_Cb, uA_WB_VsetSignal)
 }
 
 // Vicuna2
 
 Resource {Dispatcher}
+Resource {Vset, V_ID_Decoder, V_IQ_Queue, V_IQ_Signaller}
 
 Microaction {
   uA_V_DISP_Dispatch             (Dispatcher),
@@ -151,11 +149,10 @@ Microaction {
   uA_V_DISP_Req_MaxVdGroupLoad   (MaxVdGroupLoad),
   uA_V_DISP_Req_Dispatch1Ready   (Dispatch1Ready),
   uA_V_DISP_Req_Dispatch2Ready   (Dispatch2Ready),
-  uA_V_DISP_Req_VResumeScalar     (VResumeScalar),
+  uA_V_DISP_Req_VResumeScalar    (VResumeScalar),
   uA_V_ID_Decode                 (V_ID_Decoder),
   uA_V_ID_Req_SReg_A             (Xa),
   uA_V_ID_Req_SReg_B             (Xb),
-  uA_V_ID_Req_VResumeScalar       (VResumeScalar),
   uA_V_IQ_Queue                  (V_IQ_Queue)
 }
 
@@ -167,15 +164,13 @@ Stage {
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Req_MaxVdGroupLoad,
     uA_V_DISP_Req_Dispatch1Ready,
-    uA_V_DISP_Req_Dispatch2Ready,
-    uA_V_DISP_Req_VResumeScalar
+    uA_V_DISP_Req_Dispatch2Ready
   ),
 
   V_ID_stg (
     uA_V_ID_Decode,
     uA_V_ID_Req_SReg_A,
-    uA_V_ID_Req_SReg_B,
-    uA_V_ID_Req_VResumeScalar
+    uA_V_ID_Req_SReg_B
   ),
 
   V_IQ_stg [capacity: 2] (uA_V_IQ_Queue)
@@ -359,54 +354,57 @@ ResourceModel dCacheModel (
     trace : addr
 )
 
-
-/* === VICUNA2 ADDITION: vector connector and delay models. */
 ConnectorModel vectorBatchHandModel (
   link : "models/Vicuna/VectorBatchHandModel.h"
   trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf, simm5}
-  connectorIn : {VsetSignal, VResumeScalar, MemArbiterSignal, Vd}
+  connectorIn : {VResumeScalar, MemArbiterSignal, Vd}
   connectorOut : {
     MaxVdGroup, MaxVdGroupWide, MaxVdGroupNf, MaxVdGroupLoad,
-    VsetSignal, VResumeScalar, MemArbiterSignal,
+    VResumeScalar, MemArbiterSignal,
     Dispatch1Ready, Dispatch2Ready, Vs1, Vs2, Vs3
   }
 )
+
 ResourceModel vectorFixedDelayV1 (
   link : "models/Vicuna/VectorFixedDelayV1.h"
 )
+
 ResourceModel vectorFixedDelayV2 (
   link : "models/Vicuna/VectorFixedDelayV2.h"
 )
+
 ResourceModel vectorElmDelay (
   link : "models/Vicuna/VectorElmDelay.h"
   trace : {vtype}
 )
+
 ResourceModel vectorDivDelay (
   link : "models/Vicuna/VectorDivDelay.h"
   trace : {vtype}
 )
-/* === VICUNA2 ADDITION END === */
 
 InstrGroup {
     Default ([?]),
     Arith_0 (auipc, lui, csrrwi, csrrsi, csrrci),
-    Arith_Rs1 (addi, xori, ori, andi, slti, sltiu, slli, srli, srai, csrrw, csrrs, csrrc, addiw, slliw, sraiw, srliw),
-    Arith_Rs1_Rs2 (add, sub, xor, or, and, slt, sltu, sll, srl, sra, subw, addw),
+    Arith_Rs1 (addi, xori, ori, andi, slti, sltiu, slli, srli, srai, csrrw, csrrs, csrrc/*, addiw, slliw, sraiw, srliw*/),
+    Arith_Rs1_Rs2 (add, sub, xor, or, and, slt, sltu, sll, srl, sra/*, subw, addw*/),
     Branch (beq, bne, blt, bge, bltu, bgeu),
     Jump (jal),
     JumpR (jalr),
-    Mul (mul, mulh, mulhu, mulhsu, mulw),
-    Div (div, rem, divw, remw),
-    DivU (divu, remu, divuw, remuw),
-    Load (lw, lh, lhu, lb, lbu, ld, lwu),
+    Mul (mul, mulh, mulhu, mulhsu/*, mulw*/),
+    Div (div, rem/*, divw, remw*/),
+    DivU (divu, remu/*, divuw, remuw*/),
+    Load (lw, lh, lhu, lb, lbu/*, ld*/, lwu),
     Store (sb, sh, sw, sd),
 
-    /* === VICUNA2 MAPPING FIX === Vector configuration. */
     V_vsetivli (vsetivli),
     V_vsetvli (vsetvli),
     V_vsetvl (vsetvl),
 
     /* Vector memory. */
+    V_LS_32 (vle32_v, vse32_u),
+    V_LS_16 (vle16_v, vse16_u),
+    V_LS_8 (vle8_v, vse8_u),
     V_Load (vle8_v, vle16_v, vle32_v),
     V_Load_Registers (vl1r_v, vl2r_v, vl4r_v, vl8r_v),
     V_Store (vse8_v, vse16_v, vse32_v),
@@ -417,17 +415,16 @@ InstrGroup {
 
     V_Ext (vzext_vf2, vsext_vf2, vzext_vf4, vsext_vf4, vzext_vf8, vsext_vf8),
 
-    /* Vector moves. === VICUNA2 MAPPING FIX: corrected RVV mnemonics. */
     V_vmv_v_v (vmv_v_v),
     V_vmv_v_x (vmv_v_x),
     V_vmv_v_i (vmv_v_i),
-    V_vmv_regs (vmv1r_v, vmv2r_v, vmv4r_v, vmv8r_v),
+    V_vmv_regs (vmvr_v),
     V_vmv_x_s (vmv_x_s),
     V_vmv_s_x (vmv_s_x),
 
     V_RED_vv (
-        vredsum_vs, vredmaxu_vs, vredmax_vs, vredminu_vs, vredmin_vs,
-        vredand_vs, vredor_vs, vredxor_vs
+        vredsum_vs, vredmaxu_vs, vredmax_vs, vredminu_vs,
+        vredmin_vs, vredand_vs, vredor_vs, vredxor_vs
     ),
 
     V_RED_Widening_vv (vwredsumu_vs, vwredsum_vs),
@@ -458,11 +455,11 @@ InstrGroup {
 
     V_ALU_vx (
         vadd_vx, vsub_vx, vrsub_vx, vadc_vxm, vmadc_vx, vsbc_vxm, vmsbc_vx,
-        vand_vx, vor_vx, vxor_vx, vsll_vx, vsrl_vx, vsra_vx,
-        vmseq_vx, vmsne_vx, vmsltu_vx, vmslt_vx, vmsleu_vx, vmsle_vx,
-        vmsgtu_vx, vmsgt_vx, vminu_vx, vmin_vx, vmaxu_vx, vmax_vx,
-        vmerge_vxm, vsaddu_vx, vsadd_vx, vssubu_vx, vssub_vx,
-        vaaddu_vx, vaadd_vx, vasubu_vx, vasub_vx, vsmul_vx, vssrl_vx, vssra_vx
+        vand_vx, vor_vx, vxor_vx, vsll_vx, vsrl_vx, vsra_vx, vmseq_vx,
+        vmsne_vx, vmsltu_vx, vmslt_vx, vmsleu_vx, vmsle_vx, vmsgtu_vx, vmsgt_vx,
+        vminu_vx, vmin_vx, vmaxu_vx, vmax_vx, vmerge_vxm, vsaddu_vx, vsadd_vx,
+        vssubu_vx, vssub_vx, vaaddu_vx, vaadd_vx, vasubu_vx, vasub_vx, vsmul_vx,
+        vssrl_vx, vssra_vx
     ),
 
     V_MUL_vx (
@@ -514,6 +511,7 @@ InstrGroup {
         vmsbf_m, vmsof_m, vmsif_m
     )
 }
+
 MicroactionMapping {
     [ALL] : {uA_PCGen, uA_PcCorrect, uA_CacheBlock, uA_ICacheCtrl, uA_PcPredict, uA_ICache, uA_IQ, uA_Decode, uA_Issue},
     Default : {uA_IScan, uA_ALU_def, uA_Commit},
@@ -529,13 +527,24 @@ MicroactionMapping {
     Load : {uA_IScan, uA_OF_A, uA_Clobber, uA_LCtrl, uA_DCache, uA_LUnit, uA_Commit_Cb},
     Store : {uA_IScan, uA_OF_A, uA_OF_B, uA_SCtrl, uA_SUnit, uA_Commit},
 
-    V_vsetivli : {uA_IF_Req_VsetSignal, uA_Decode, uA_EX_Vset, uA_WB_VsetSignal, uA_V_ID_Decode},
-    V_vsetvli : {uA_IF_Req_VsetSignal, uA_Decode, uA_OF_A, uA_EX_Vset, uA_WB_VsetSignal, uA_V_ID_Decode},
-    V_vsetvl : {uA_IF_Req_VsetSignal, uA_Decode, uA_OF_A, uA_OF_B, uA_EX_Vset, uA_WB_VsetSignal, uA_V_ID_Decode},
+    V_vsetivli : {uA_V_ID_Decode},
+
+    V_vsetvli : {
+        uA_OF_A,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
+        uA_V_ID_Decode
+    },
+
+    V_vsetvl : {
+        uA_OF_A,
+        uA_OF_B,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
+        uA_V_ID_Decode
+    },
 
     V_Div_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -549,8 +558,6 @@ MicroactionMapping {
     },
 
     V_Div_vx : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
@@ -563,9 +570,8 @@ MicroactionMapping {
     },
 
     V_Ext : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -579,9 +585,8 @@ MicroactionMapping {
     },
 
     V_vmv_v_v : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -595,10 +600,9 @@ MicroactionMapping {
     },
 
     V_vmv_v_x : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -611,9 +615,8 @@ MicroactionMapping {
     },
 
     V_vmv_v_i : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -626,9 +629,8 @@ MicroactionMapping {
     },
 
     V_vmv_regs : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupNf,
@@ -641,9 +643,8 @@ MicroactionMapping {
     },
 
     V_vmv_x_s : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_Dispatch1Ready,
@@ -655,10 +656,9 @@ MicroactionMapping {
     },
 
     V_vmv_s_x : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -671,9 +671,8 @@ MicroactionMapping {
     },
 
     V_ALU_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -688,9 +687,8 @@ MicroactionMapping {
     },
 
     V_MUL_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -706,9 +704,8 @@ MicroactionMapping {
     },
 
     V_ALU_Widening_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupWide,
@@ -723,9 +720,8 @@ MicroactionMapping {
     },
 
     V_MUL_Widening_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupWide,
@@ -741,10 +737,9 @@ MicroactionMapping {
     },
 
     V_ALU_vx : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -758,10 +753,9 @@ MicroactionMapping {
     },
 
     V_MUL_vx : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -776,10 +770,9 @@ MicroactionMapping {
     },
 
     V_ALU_Widening_vx : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupWide,
@@ -793,10 +786,9 @@ MicroactionMapping {
     },
 
     V_MUL_Widening_vx : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupWide,
@@ -811,9 +803,8 @@ MicroactionMapping {
     },
 
     V_ALU_vi : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -828,9 +819,8 @@ MicroactionMapping {
 
 
     V_RED_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup,
@@ -843,9 +833,8 @@ MicroactionMapping {
     },
 
     V_RED_Widening_vv : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Nop,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroupWide,
@@ -859,10 +848,8 @@ MicroactionMapping {
 
 
     V_Load : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Req_SReg_A,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
@@ -881,10 +868,8 @@ MicroactionMapping {
     },
 
     V_Load_Registers : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Req_SReg_A,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
@@ -903,10 +888,8 @@ MicroactionMapping {
     },
 
     V_Store : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Req_SReg_A,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
@@ -925,10 +908,8 @@ MicroactionMapping {
     },
 
     V_Store_Registers : {
-        uA_IF_Req_VsetSignal,
-        uA_Decode,
         uA_OF_A,
-        uA_EX_Req_VResumeScalar,
+        uA_ALU_Req_VResumeScalar,
         uA_V_ID_Req_SReg_A,
         uA_V_ID_Decode,
         uA_V_IQ_Queue,
@@ -946,11 +927,11 @@ MicroactionMapping {
         uA_V1_Pack_ResumeScalar
     },
 
-    V_ELEM : {uA_IF_Req_VsetSignal, uA_Decode, uA_EX_Req_VResumeScalar, uA_V_ID_Decode, uA_V_IQ_Queue,
+    V_ELEM : {uA_IF_Req_VsetSignal, uA_Decode, uA_ALU_Req_VResumeScalar, uA_V_ID_Decode, uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup, uA_V_DISP_Dispatch, uA_V2_Unpack_Req_Vs2, uA_V2_Unpack,
         uA_V2_Unpack_2, uA_V2_Unpack_3, uA_V2_Unpack_4, uA_V2_Unpack_5,
         uA_V2_ALU_BUF_OP, uA_V2_ALU_BUF_INT, uA_V2_ALU_BUF_RES, uA_V2_Pack},
-    V_Mask : {uA_IF_Req_VsetSignal, uA_Decode, uA_EX_Req_VResumeScalar, uA_V_ID_Decode, uA_V_IQ_Queue,
+    V_Mask : {uA_IF_Req_VsetSignal, uA_Decode, uA_ALU_Req_VResumeScalar, uA_V_ID_Decode, uA_V_IQ_Queue,
         uA_V_DISP_Req_MaxVdGroup, uA_V_DISP_Dispatch, uA_V2_Unpack_Req_Vs1, uA_V2_Unpack_Req_Vs2,
         uA_V2_Unpack, uA_V2_Unpack_2, uA_V2_Unpack_3, uA_V2_Unpack_4, uA_V2_Unpack_5,
         uA_V2_ALU_BUF_OP, uA_V2_ALU_BUF_INT, uA_V2_ALU_BUF_RES, uA_V2_Pack}
