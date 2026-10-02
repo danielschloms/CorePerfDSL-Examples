@@ -247,6 +247,9 @@ InstrGroup {
   // From X[rs1] to vd[0]
   V_vmv_s_x (vmv_s_x),
 
+  // From X[rs1] to vd[0]
+  V_vmv_x_s (vmv_x_s),
+
   V_DIV_vv (vdiv_vv, vdivu_vv, vremu_vv, vrem_vv),
   V_DIV_vx (vdiv_vx, vdivu_vx, vremu_vx, vrem_vx),
 
@@ -317,7 +320,7 @@ InstrGroup {
   V_ELEM (vcompress_vm),
   V_REDSUM (vredsum_vs, vredand_vs, vredor_vs, vredxor_vs),
   V_REDMINMAX (vredmaxu_vs, vredmax_vs, vredminu_vs, vredmin_vs),
-  V_XRESULT (vmv_x_s, vcpop_m, vfirst_m),
+  V_XRESULT (vcpop_m, vfirst_m),
   V_INDEX (vid_v, viota_m),
 
   V_SLD (
@@ -520,6 +523,20 @@ TraceValueMapping {
     vs2 = "$bitfield{vs2}",
     vtype = "$csr{0xC21}"
   },
+
+  V_XRESULT : {
+    rd = "$bitfield{rd}",
+    vs2 = "$bitfield{vs2}",
+    vtype = "$csr{0xC21}"
+  },
+
+  V_INDEX : {
+    vs2 = "$bitfield{vs2}",
+    vd  = "$bitfield{vd}",
+    // VTYPE CSR Address = 0xC21
+    vtype = "$csr{0xC21}"
+  },
+
 
   V_ALU_vv          : {VV_TRACE_VALUES},
   V_ALU_vx          : {VX_TRACE_VALUES},

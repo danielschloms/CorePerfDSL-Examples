@@ -259,7 +259,6 @@ uA_V1_LSU_BUF_RESP
     /* Vector */
     uA_V_DEC_ID_DISP_,
     // Batched
-    uA_V2_Unpack_Req_Vs1,
     uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_Fixed,
     uA_V2_INDEX,
@@ -273,11 +272,22 @@ uA_V1_LSU_BUF_RESP
     uA_V_DEC_ID_DISP_NOWAW,
     // Batched
     uA_V2_Unpack_Req_Vs2,
-    uA_V2_Unpack_ELEM,
+    uA_V2_Unpack_Fixed,
     uA_V2_XRESULT,
     uA_V2_Pack_FreeWb
   },
 
+  V_XRESULT : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V2_XRESULT,
+    uA_V2_Pack_FreeWb
+  },
                 
   V_Load : {
     /* Scalar */
