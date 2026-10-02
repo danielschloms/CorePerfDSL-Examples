@@ -1,0 +1,355 @@
+#define uA_V_SCALAR_    \
+uA_IF_Req_VsetSignal,   \
+uA_ID_Decode,           \
+uA_EX_Req_WbFreeSignal, \
+uA_EX_Nop,              \
+uA_WB_Nop
+
+#define uA_V_DEC_ID_DISP_ \
+uA_V_ID_Decode,           \
+uA_V_IQ_Queue,            \
+uA_V_DISP_Req_MaxVdGroup, \
+uA_V_DISP_Dispatch
+
+#define uA_V_DEC_ID_DISP_WIDE_  \
+uA_V_ID_Decode,                 \
+uA_V_IQ_Queue,                  \
+uA_V_DISP_Req_MaxVdGroupWide,   \
+uA_V_DISP_Dispatch
+
+#define uA_V_DEC_ID_DISP_NOWAW  \
+uA_V_ID_Decode,                 \
+uA_V_IQ_Queue,                  \
+uA_V_DISP_Dispatch              \
+
+#define uA_V_ALU_   \
+uA_V2_ALU_BUF_OP,   \
+uA_V2_ALU_BUF_INT,  \
+uA_V2_ALU_BUF_RES
+
+#define uA_V_MUL_   \
+uA_V2_MUL_BUF_OP,   \
+uA_V2_MUL_BUF_IN,   \
+uA_V2_MUL_BUF_OUT,  \
+uA_V2_MUL_BUF_RES
+
+#define uA_V_LSU_     \
+uA_V1_LSU_BUF_REQ,    \
+uA_V1_LSU_MemAccess,  \
+uA_V1_LSU_BUF_RESP
+
+  V_DIV_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_DIV,
+    uA_V2_DIV,
+    uA_V2_Pack
+  },
+
+  V_DIV_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_DIV,
+    uA_V2_DIV,
+    uA_V2_Pack
+  },
+
+  // Same as regular ALU, but only dependend on vs2  
+  V_Ext : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_vmv_regs : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_vmv_v_i : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_vmv_s_x : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_ALU_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_MUL_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_MUL_,
+    uA_V2_Pack
+  },
+
+  // Same as V_ALU_vv, but reiterated, since it needs to double LMUL
+  V_ALU_Widening_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_WIDE_,
+    // Batched
+    // TODO: widening
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_MUL_Widening_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_WIDE_,
+    // Batched
+    // TODO: widening
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_MUL_,
+    uA_V2_Pack
+  },
+
+  V_ALU_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_ALU_vi : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_MUL_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_MUL_,
+    uA_V2_Pack
+  },
+
+  V_ALU_Widening_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_WIDE_,
+    // Batched
+    // TODO: widening
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_MUL_Widening_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_WIDE_,
+    // Batched
+    // TODO: widening
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_MUL_,
+    uA_V2_Pack
+  },
+
+  V_REDSUM : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V2_REDSUM,
+    uA_V2_Pack
+  },
+
+  V_REDMINMAX : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V2_REDMINMAX,
+    uA_V2_Pack
+  },
+
+  V_INDEX : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V2_INDEX,
+    uA_V2_Pack
+  },
+
+  V_vmv_x_s : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_ELEM,
+    uA_V2_XRESULT,
+    uA_V2_Pack_FreeWb
+  },
+
+                
+  V_Load : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroupLoad,
+    uA_V_DISP_Dispatch,
+    // Batched
+    uA_V1_Unpack_Fixed,
+    uA_V_LSU_,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb
+  },
+
+  V_Load_Registers : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroupNf,
+    uA_V_DISP_Dispatch,
+    // Batched
+    uA_V1_Unpack_Fixed,
+    uA_V_LSU_,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb
+  },
+
+  V_Store : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_Fixed,
+    uA_V_LSU_,
+    uA_V1_Pack_FreeWb
+  },
+
+  V_Store_Registers : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_Fixed,
+    uA_V_LSU_,
+    uA_V1_Pack_FreeWb
+  },
+
+  V_vsetivli : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode
+  },
+
+  V_vsetvli : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode
+  },
+
+  V_vsetvl: {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode
+  }

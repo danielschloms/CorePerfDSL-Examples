@@ -1,0 +1,190 @@
+/* --- Vector Connectors --- */
+
+Connector {
+  // Vector Registers
+  Vs1,
+  Vs2,
+  Vs3,
+  Vd,
+  // WAW - Dispatch Stage
+  MaxVdGroup,
+  MaxVdGroupWide,
+  MaxVdGroupNf,
+  MaxVdGroupLoad,
+  // Scalar stall from Vector
+  WbFreeSignal,
+  VsetSignal
+}
+
+/* --- Vector Stages --- */
+
+/* Vector DISP */
+Resource {Dispatcher}
+
+Microaction {
+  uA_V_DISP_Dispatch             (Dispatcher),
+  uA_V_DISP_Req_MaxVdGroup       (MaxVdGroup),
+  uA_V_DISP_Req_MaxVdGroupWide   (MaxVdGroupWide),
+  uA_V_DISP_Req_MaxVdGroupNf     (MaxVdGroupNf),
+  uA_V_DISP_Req_MaxVdGroupLoad   (MaxVdGroupLoad),
+  uA_V_DISP_Req_WbFreeSignal     (WbFreeSignal)
+}
+
+Stage {
+  V_DISP_stg (
+    uA_V_DISP_Dispatch, 
+    uA_V_DISP_Req_MaxVdGroup,
+    uA_V_DISP_Req_MaxVdGroupWide,
+    uA_V_DISP_Req_MaxVdGroupNf,
+    uA_V_DISP_Req_MaxVdGroupLoad,
+    uA_V_DISP_Req_WbFreeSignal
+  )
+}
+
+/* Vector Decode */
+Resource {V_ID_Decoder}
+
+Microaction {
+  uA_V_ID_Decode           (V_ID_Decoder),
+  uA_V_ID_Req_SReg_A       (Xa),
+  uA_V_ID_Req_SReg_B       (Xb),
+  uA_V_ID_Req_VsetSignal   (VsetSignal),
+  uA_V_ID_Req_WbFreeSignal (WbFreeSignal)
+}
+
+Stage {
+  V_ID_stg (
+    uA_V_ID_Decode,
+    uA_V_ID_Req_VsetSignal,
+    uA_V_ID_Req_WbFreeSignal
+  )
+}
+
+/* Vector Instruction Queue */
+
+Resource {V_IQ_Queue, V_IQ_Signaller}
+
+Microaction {uA_V_IQ_Queue (V_IQ_Queue)}
+
+Stage {V_IQ_stg [capacity: 2] (uA_V_IQ_Queue)}
+
+/* V1 Pipeline */
+Resource {
+  V1_Unpack_Fixed (vectorFixedDelayV1),
+  V1_Unpack_ELM   (vectorElmDelay),
+  V1_LSU_BUF_REQ  (vectorFixedDelayV1),
+  V1_LSU_BUF_RESP (1),
+  V1_Pack_Write   (1),
+  V1_Pack_FreeWb  (1),
+  V1_MemAccess    (1)
+}
+
+Microaction {
+  uA_V1_Unpack_Fixed     (V1_Unpack_Fixed),
+  uA_V1_Unpack_Req_Vs1   (Vs1),
+  uA_V1_Unpack_Req_Vs2   (Vs2),
+  uA_V1_Unpack_Req_Vs3   (Vs3),
+  uA_V1_LSU_BUF_REQ      (V1_LSU_BUF_REQ),
+  uA_V1_LSU_MemAccess    (V1_MemAccess),
+  uA_V1_LSU_BUF_RESP     (V1_LSU_BUF_RESP),
+  uA_V1_Pack_FreeWb      (V1_Pack_FreeWb -> WbFreeSignal),
+  uA_V1_Pack_Write       (V1_Pack_Write -> Vd)
+}
+
+Stage {
+  V1_Unpack_stg           (uA_V1_Unpack_Fixed, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
+  V1_LSU_BUF_REQ_stg      (uA_V1_LSU_BUF_REQ),
+  V1_LSU_MemAccess_stg    (uA_V1_LSU_MemAccess),
+  V1_LSU_BUF_RESP_stg     (uA_V1_LSU_BUF_RESP),
+  V1_Pack_stg             (uA_V1_Pack_Write, uA_V1_Pack_FreeWb)
+}
+
+/* V2 Resource, uActions, and Stages */
+Resource {
+  V2_Unpack_Fixed (vectorFixedDelayV2),
+  V2_Unpack_DIV   (vectorDivDelay),
+  V2_Unpack_ELEM  (vectorElmDelay),
+  V2_MUL_BUF_OP   (1),
+  V2_MUL_BUF_IN   (1),
+  V2_MUL_BUF_OUT  (1),
+  V2_MUL_BUF_RES  (1),
+  V2_ALU_BUF_OP   (1),
+  V2_ALU_BUF_INT  (1),
+  V2_ALU_BUF_RES  (1),
+  V2_DIV          (1),
+  V2_ELEM         (1),
+  V2_REDSUM       (1),
+  V2_REDMINMAX    (1),
+  V2_INDEX        (1),
+  V2_XRESULT      (1),
+  V2_SLD          (1),
+  V2_GATHER       (1),
+  V2_Pack         (1),
+  V2_Pack_X       (1),
+  V2_Pack_FreeWb  (1)
+}
+
+Microaction {
+  uA_V2_Unpack_Fixed    (V2_Unpack_Fixed),
+  uA_V2_Unpack_DIV      (V2_Unpack_DIV),
+  uA_V2_Unpack_ELEM     (V2_Unpack_ELEM),
+  uA_V2_Unpack_Req_Vs1  (Vs1),
+  uA_V2_Unpack_Req_Vs2  (Vs2),
+  uA_V2_MUL_BUF_OP      (V2_MUL_BUF_OP),
+  uA_V2_MUL_BUF_IN      (V2_MUL_BUF_IN),
+  uA_V2_MUL_BUF_OUT     (V2_MUL_BUF_OUT),
+  uA_V2_MUL_BUF_RES     (V2_MUL_BUF_RES),
+  uA_V2_ALU_BUF_OP      (V2_ALU_BUF_OP),
+  uA_V2_ALU_BUF_INT     (V2_ALU_BUF_INT),
+  uA_V2_ALU_BUF_RES     (V2_ALU_BUF_RES),
+  uA_V2_DIV             (V2_DIV),
+  uA_V2_ELEM            (V2_ELEM),
+  uA_V2_REDSUM          (V2_REDSUM),
+  uA_V2_REDMINMAX       (V2_REDMINMAX),
+  uA_V2_INDEX           (V2_INDEX),
+  uA_V2_XRESULT         (V2_XRESULT),
+  uA_V2_SLD             (V2_SLD),
+  uA_V2_GATHER          (V2_GATHER),
+  uA_V2_Pack            (V2_Pack -> Vd),
+  uA_V2_Pack_X          (V2_Pack_X -> Xd),
+  uA_V2_Pack_FreeWb     (V2_Pack_FreeWb -> WbFreeSignal)
+}
+
+Stage {
+  V2_Unpack_stg      (uA_V2_Unpack_Fixed, uA_V2_Unpack_DIV, uA_V2_Unpack_ELEM, uA_V2_Unpack_Req_Vs1, uA_V2_Unpack_Req_Vs2),
+  V2_ALU_BUF_OP_stg  (uA_V2_ALU_BUF_OP),
+  V2_ALU_BUF_INT_stg (uA_V2_ALU_BUF_INT),
+  V2_ALU_BUF_RES_stg (uA_V2_ALU_BUF_RES),
+  V2_MUL_BUF_OP_stg  (uA_V2_MUL_BUF_OP),
+  V2_MUL_BUF_IN_stg  (uA_V2_MUL_BUF_IN),
+  V2_MUL_BUF_OUT_stg (uA_V2_MUL_BUF_OUT),
+  V2_MUL_BUF_RES_stg (uA_V2_MUL_BUF_RES),
+  V2_DIV_stg         (uA_V2_DIV),
+  V2_ELEM_stg        (uA_V2_ELEM),
+  V2_REDSUM_stg      (uA_V2_REDSUM),
+  V2_REDMINMAX_stg   (uA_V2_REDMINMAX),
+  V2_INDEX_stg       (uA_V2_INDEX),
+  V2_XRESULT_stg     (uA_V2_XRESULT),
+  V2_SLD_stg         (uA_V2_SLD),
+  V2_GATHER_stg      (uA_V2_GATHER),
+  V2_Pack_stg        (uA_V2_Pack, uA_V2_Pack_X, uA_V2_Pack_FreeWb)
+}
+
+/* Vector Functional Units */
+Pipeline V1_LSU     (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
+Stage V1_Subpipe    (V1_LSU)
+
+Pipeline V2_ALU_p    (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
+Pipeline V2_MUL_p    (V2_MUL_BUF_OP_stg -> V2_MUL_BUF_IN_stg -> V2_MUL_BUF_OUT_stg -> V2_MUL_BUF_RES_stg)
+
+// TODO: GATHER
+Pipeline V2_Subpipe  (
+  V2_ALU_p | V2_MUL_p | V2_DIV_stg | V2_ELEM_stg | 
+  V2_REDSUM_stg | V2_REDMINMAX_stg | V2_INDEX_stg | 
+  V2_XRESULT_stg | V2_SLD_stg
+)         
+
+Pipeline V1 (V1_Unpack_stg -> V1_Subpipe -> V1_Pack_stg)
+Pipeline V2 (V2_Unpack_stg -> V2_Subpipe -> V2_Pack_stg)
+Pipeline Vector_Parallel_Unit_pipeline (V1 | V2)
+Pipeline Vector_pipeline (V_ID_stg -> V_IQ_stg -> V_DISP_stg -> Vector_Parallel_Unit_pipeline)
