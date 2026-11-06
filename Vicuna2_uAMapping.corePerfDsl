@@ -299,7 +299,7 @@ uA_V1_LSU_BUF_RESP
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Fixed,
-    uA_V_LSU_,
+    uA_V1_LSU_MemAccess,
     uA_V1_Pack_Write,
     uA_V1_Pack_FreeWb
   },

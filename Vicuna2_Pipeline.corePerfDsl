@@ -76,7 +76,7 @@ Resource {
   V1_LSU_BUF_RESP (1),
   V1_Pack_Write   (1),
   V1_Pack_FreeWb  (1),
-  V1_MemAccess    (1)
+  V1_MemAccess    (4)
 }
 
 Microaction {
@@ -171,7 +171,8 @@ Stage {
 }
 
 /* Vector Functional Units */
-Pipeline V1_LSU     (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
+// Pipeline V1_LSU     (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
+Pipeline V1_LSU     (V1_LSU_MemAccess_stg)
 Stage V1_Subpipe    (V1_LSU)
 
 Pipeline V2_ALU_p    (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)
