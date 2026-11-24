@@ -6,14 +6,17 @@ Connector {
   Vs2,
   Vs3,
   Vd,
+  VdFinal,
   // WAW - Dispatch Stage
   MaxVdGroup,
   MaxVdGroupWide,
+  MaxVdGroupNarrow,
   MaxVdGroupNf,
   MaxVdGroupLoad,
   // Scalar stall from Vector
   WbFreeSignal,
-  VsetSignal
+  VsetSignal,
+  CommitSignal
 }
 
 /* --- Vector Stages --- */
@@ -25,9 +28,10 @@ Microaction {
   uA_V_DISP_Dispatch             (Dispatcher),
   uA_V_DISP_Req_MaxVdGroup       (MaxVdGroup),
   uA_V_DISP_Req_MaxVdGroupWide   (MaxVdGroupWide),
+  uA_V_DISP_Req_MaxVdGroupNarrow (MaxVdGroupNarrow),
   uA_V_DISP_Req_MaxVdGroupNf     (MaxVdGroupNf),
   uA_V_DISP_Req_MaxVdGroupLoad   (MaxVdGroupLoad),
-  uA_V_DISP_Req_WbFreeSignal     (WbFreeSignal)
+  uA_V_DISP_Req_CommitSignal     (CommitSignal)
 }
 
 Stage {
@@ -35,9 +39,10 @@ Stage {
     uA_V_DISP_Dispatch, 
     uA_V_DISP_Req_MaxVdGroup,
     uA_V_DISP_Req_MaxVdGroupWide,
+    uA_V_DISP_Req_MaxVdGroupNarrow,
     uA_V_DISP_Req_MaxVdGroupNf,
     uA_V_DISP_Req_MaxVdGroupLoad,
-    uA_V_DISP_Req_WbFreeSignal
+    uA_V_DISP_Req_CommitSignal
   )
 }
 
@@ -70,17 +75,19 @@ Stage {V_IQ_stg [capacity: 2] (uA_V_IQ_Queue)}
 
 /* V1 Pipeline */
 Resource {
-  V1_Unpack_Fixed (vectorFixedDelayV1),
-  V1_Unpack_ELM   (vectorElmDelay),
-  V1_LSU_BUF_REQ  (vectorFixedDelayV1),
-  V1_LSU_BUF_RESP (1),
-  V1_Pack_Write   (1),
-  V1_Pack_FreeWb  (1),
-  V1_MemAccess    (4)
+  V1_Unpack_Fixed     (vectorFixedDelayV1),
+  V1_Unpack_Elements  (vectorLSElmDelay),
+  V1_LSU_BUF_REQ      (1),
+  V1_LSU_BUF_RESP     (1),
+  V1_Pack_Write       (1),
+  V1_Pack_FreeWb      (1),
+  V1_Pack_Commit      (1),
+  V1_MemAccess        (2)
 }
 
 Microaction {
   uA_V1_Unpack_Fixed     (V1_Unpack_Fixed),
+  uA_V1_Unpack_Elements  (V1_Unpack_Elements),
   uA_V1_Unpack_Req_Vs1   (Vs1),
   uA_V1_Unpack_Req_Vs2   (Vs2),
   uA_V1_Unpack_Req_Vs3   (Vs3),
@@ -88,15 +95,16 @@ Microaction {
   uA_V1_LSU_MemAccess    (V1_MemAccess),
   uA_V1_LSU_BUF_RESP     (V1_LSU_BUF_RESP),
   uA_V1_Pack_FreeWb      (V1_Pack_FreeWb -> WbFreeSignal),
-  uA_V1_Pack_Write       (V1_Pack_Write -> Vd)
+  uA_V1_Pack_Write       (V1_Pack_Write -> Vd),
+  uA_V1_Pack_Commit      (V1_Pack_Commit -> CommitSignal)
 }
 
 Stage {
-  V1_Unpack_stg           (uA_V1_Unpack_Fixed, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
+  V1_Unpack_stg           (uA_V1_Unpack_Fixed, uA_V1_Unpack_Elements, uA_V1_Unpack_Req_Vs1, uA_V1_Unpack_Req_Vs2, uA_V1_Unpack_Req_Vs3),
   V1_LSU_BUF_REQ_stg      (uA_V1_LSU_BUF_REQ),
   V1_LSU_MemAccess_stg    (uA_V1_LSU_MemAccess),
   V1_LSU_BUF_RESP_stg     (uA_V1_LSU_BUF_RESP),
-  V1_Pack_stg             (uA_V1_Pack_Write, uA_V1_Pack_FreeWb)
+  V1_Pack_stg             (uA_V1_Pack_Write, uA_V1_Pack_FreeWb, uA_V1_Pack_Commit)
 }
 
 /* V2 Resource, uActions, and Stages */
@@ -120,6 +128,7 @@ Resource {
   V2_SLD          (1),
   V2_GATHER       (1),
   V2_Pack         (1),
+  V2_Pack_Final   (1),
   V2_Pack_X       (1),
   V2_Pack_FreeWb  (1)
 }
@@ -146,6 +155,7 @@ Microaction {
   uA_V2_SLD             (V2_SLD),
   uA_V2_GATHER          (V2_GATHER),
   uA_V2_Pack            (V2_Pack -> Vd),
+  uA_V2_Pack_Final      (V2_Pack -> VdFinal),
   uA_V2_Pack_X          (V2_Pack_X -> Xd),
   uA_V2_Pack_FreeWb     (V2_Pack_FreeWb -> WbFreeSignal)
 }
@@ -167,12 +177,12 @@ Stage {
   V2_XRESULT_stg     (uA_V2_XRESULT),
   V2_SLD_stg         (uA_V2_SLD),
   V2_GATHER_stg      (uA_V2_GATHER),
-  V2_Pack_stg        (uA_V2_Pack, uA_V2_Pack_X, uA_V2_Pack_FreeWb)
+  V2_Pack_stg        (uA_V2_Pack, uA_V2_Pack_Final, uA_V2_Pack_X, uA_V2_Pack_FreeWb)
 }
 
 /* Vector Functional Units */
-// Pipeline V1_LSU     (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
-Pipeline V1_LSU     (V1_LSU_MemAccess_stg)
+Pipeline V1_LSU     (V1_LSU_BUF_REQ_stg -> V1_LSU_MemAccess_stg -> V1_LSU_BUF_RESP_stg)
+// Pipeline V1_LSU     (V1_LSU_MemAccess_stg)
 Stage V1_Subpipe    (V1_LSU)
 
 Pipeline V2_ALU_p    (V2_ALU_BUF_OP_stg -> V2_ALU_BUF_INT_stg -> V2_ALU_BUF_RES_stg)

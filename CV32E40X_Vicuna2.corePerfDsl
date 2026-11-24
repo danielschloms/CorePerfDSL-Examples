@@ -45,7 +45,7 @@ Microaction {
   uA_ID_JumpDecodeReg         (Xa -> JumpDecoder -> Pc_np),
   uA_ID_Req_SReg_A            (Xa),
   uA_ID_Req_SReg_B            (Xb),
-  uA_ID_Req_VsetSignal        (VsetSignal)
+  uA_ID_Vset                  (Vset -> VsetSignal)
 }
 
 /************************************ Stages & Pipeline ************************************/
@@ -64,7 +64,7 @@ Stage {
     uA_ID_JumpDecodeReg,
     uA_ID_Req_SReg_A,
     uA_ID_Req_SReg_B,
-    uA_ID_Req_VsetSignal
+    uA_ID_Vset
   )
 }
 
@@ -143,7 +143,7 @@ Pipeline Full_pipeline (IF_stg -> Parallel_pipeline)
 /************************************* External Models *************************************/
 TraceValue {
   rs1, rs2, rd, pc, 
-  brTarget, rs2_data, vtype, vl, 
+  brTarget, rs2_data, rs1_data, vtype, vl, 
   vs1, vs2, vs3, vd, 
   vm, nf, simm5, lsWidth
 }
@@ -157,21 +157,25 @@ ConnectorModel regModel (
 
 ConnectorModel vectorBatchHandModel (
   link : "models/Vicuna2/VectorBatchHandModel.h"
-  trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf, simm5}
+  trace : {vs1, vs2, vs3, vd, vtype, lsWidth, nf, simm5, rs1_data}
   connectorIn : {
     VsetSignal,
     WbFreeSignal,
-    Vd
+    CommitSignal,
+    Vd,
+    VdFinal
   }
   connectorOut : {
     // WAW - Dispatch
     MaxVdGroup,
     MaxVdGroupWide,
+    MaxVdGroupNarrow,
     MaxVdGroupNf,
     MaxVdGroupLoad,
     // Signals
     VsetSignal,
     WbFreeSignal,
+    CommitSignal,
     Vs1,
     Vs2,
     Vs3
@@ -208,6 +212,11 @@ ResourceModel vectorElmDelay(
   trace: {vtype}
 )
 
+ResourceModel vectorLSElmDelay(
+  link: "models/Vicuna2/VectorLSElmDelay.h"
+  trace: {lsWidth}
+)
+
 ResourceModel vectorDivDelay(
   link: "models/Vicuna2/VectorDivDelay.h"
   trace: {vtype}
@@ -229,18 +238,22 @@ InstrGroup {
   Branch_Ra_Rb (beq, bne, blt, bge, bltu, bgeu),
 
   V_Load (vle32_v, vle16_v, vle8_v),
+  V_Load_Stride (vlse32_v, vlse16_v, vlse8_v),
   V_Load_Registers (vl8r_v, vl16r_v, vl32r_v),
+  V_Load_Seg (vlsege8_v, vlsege16_v, vlsege32_v),
+  V_Store_Index (vsoxei8_v, vsoxei16_v, vsoxei32_v),
   V_Store (vse32_u, vse16_u, vse8_u),
+  V_Store_Stride (vsse32_v, vsse16_v, vsse8_v),
   V_Store_Registers (vsr_v),
-  V_LS_32 (vle32_v, vse32_u),
-  V_LS_16 (vle16_v, vse16_u),
-  V_LS_8 (vle8_v, vse8_u),
+  V_LS_32 (vle32_v, vse32_u, vl32r_v, vlse32_v, vsse32_v, vlsege32_v, vsoxei32_v),
+  V_LS_16 (vle16_v, vse16_u, vl16r_v, vlse16_v, vsse16_v, vlsege16_v, vsoxei16_v),
+  V_LS_8 (vle8_v, vse8_u, vl8r_v, vlse8_v, vsse8_v, vlsege8_v, vsoxei8_v),
 
   // Zero/Sign Extension
   V_Ext (vzext_vf2, vsext_vf2, vzext_vf4, vsext_vf4, vzext_vf8, vsext_vf8),
 
   // ALU op, target vd, source imm
-  V_vmv_v_i (vmv_v_i),
+  V_vmv_v_xi (vmv_v_i, vmv_v_x),
 
   V_vmv_regs (vmvr_v),
 
@@ -263,6 +276,11 @@ InstrGroup {
     vsadd_vv, vssubu_vv, vssub_vv, vaaddu_vv,
     vaadd_vv, vasubu_vv, vasub_vv, vsmul_vv,
     vssrl_vv, vssra_vv
+  ),
+
+  V_ALU_m (
+    vmand_mm, vmnand_mm, vmandn_mm, vmxor_mm,
+    vmor_mm, vmnor_mm, vmorn_mm, vmxnor_mm
   ),
 
   V_ALU_vx (
@@ -303,6 +321,10 @@ InstrGroup {
     vwaddu_w_vx, vwsubu_w_vx, vwadd_w_vx, vwsub_w_vx
   ),
 
+  V_ALU_Narrowing_vx (
+    vnsrl_wx, vnsrl_wi, vnsra_wx, vnsra_wi
+  ),
+
   V_MUL_Widening_vx (
     vwmul_vx, vwmulu_vx, vwmulsu_vx, vwmaccu_vx,
     vwmacc_vx, vwmaccsu_vx, vwmaccus_vx
@@ -314,7 +336,9 @@ InstrGroup {
     vsrl_vi, vsra_vi, vmseq_vi, vmsne_vi,
     vmsleu_vi, vmsle_vi, vmsgtu_vi, vmsgt_vi,
     vmerge_vim, vsaddu_vi, vsadd_vi, vssrl_vi,
-    vssra_vi
+    vssra_vi,
+    // Not really .vi, but same timing as the immediate does nothing
+    vmv_v_v
   ),
 
   V_ELEM (vcompress_vm),
@@ -470,13 +494,38 @@ TraceValueMapping {
     vl = "$csr{0xC20}"
   },
 
+  V_Load_Stride : {
+    vd = "$bitfield{vd}",
+    rs1 = "$bitfield{rs1}",
+    // VTYPE CSR Address = 0xC21
+    // VL CSR Address = 0xC20;
+    vtype = "$csr{0xC21}",
+    vl = "$csr{0xC20}"
+  },
+
   V_Load_Registers : {
     vd = "$bitfield{vd}",
     rs1 = "$bitfield{rs1}",
     nf = "$bitfield{nf}"
   },
 
+  V_Load_Seg : {
+    vd = "$bitfield{vd}",
+    rs1 = "$bitfield{rs1}",
+    nf = "$bitfield{nf}",
+    rs1_data = "$reg{$bitfield{rs1}}"
+  },
+
   V_Store : {
+    vs3 = "$bitfield{vs3}",
+    rs1 = "$bitfield{rs1}",
+    // VTYPE CSR Address = 0xC21
+    // VL CSR Address = 0xC20;
+    vtype = "$csr{0xC21}",
+    vl = "$csr{0xC20}"
+  },
+
+  V_Store_Stride : {
     vs3 = "$bitfield{vs3}",
     rs1 = "$bitfield{rs1}",
     // VTYPE CSR Address = 0xC21
@@ -489,6 +538,16 @@ TraceValueMapping {
     vs3 = "$bitfield{vs3}",
     rs1 = "$bitfield{rs1}",
     nf = "$bitfield{nf}"
+  },
+
+  V_Store_Index : {
+    vs3 = "$bitfield{vs3}",
+    vs2 = "$bitfield{vs2}",
+    rs1 = "$bitfield{rs1}",
+    // VTYPE CSR Address = 0xC21
+    // VL CSR Address = 0xC20;
+    vtype = "$csr{0xC21}",
+    vl = "$csr{0xC20}"
   },
 
   V_Ext : {
@@ -506,7 +565,7 @@ TraceValueMapping {
     vtype = "$csr{0xC21}"
   },
 
-  V_vmv_v_i : {
+  V_vmv_v_xi : {
     vd = "$bitfield{vd}",
     // VTYPE CSR Address = 0xC21
     vtype = "$csr{0xC21}"
@@ -538,20 +597,22 @@ TraceValueMapping {
   },
 
 
-  V_ALU_vv          : {VV_TRACE_VALUES},
-  V_ALU_vx          : {VX_TRACE_VALUES},
-  V_ALU_vi          : {VI_TRACE_VALUES},
-  V_MUL_vv          : {VV_TRACE_VALUES},
-  V_MUL_vx          : {VX_TRACE_VALUES},
-  V_ALU_Widening_vv : {VV_TRACE_VALUES},
-  V_ALU_Widening_vx : {VX_TRACE_VALUES},
-  V_MUL_Widening_vv : {VV_TRACE_VALUES},
-  V_MUL_Widening_vx : {VX_TRACE_VALUES},
-  V_DIV_vv          : {VV_TRACE_VALUES},
-  V_DIV_vx          : {VX_TRACE_VALUES},
-  V_REDSUM          : {VV_TRACE_VALUES},
-  V_REDMINMAX       : {VV_TRACE_VALUES},
-  V_SLD             : {VX_TRACE_VALUES},
+  V_ALU_vv           : {VV_TRACE_VALUES},
+  V_ALU_m            : {VV_TRACE_VALUES},
+  V_ALU_vx           : {VX_TRACE_VALUES},
+  V_ALU_vi           : {VI_TRACE_VALUES},
+  V_MUL_vv           : {VV_TRACE_VALUES},
+  V_MUL_vx           : {VX_TRACE_VALUES},
+  V_ALU_Widening_vv  : {VV_TRACE_VALUES},
+  V_ALU_Widening_vx  : {VX_TRACE_VALUES},
+  V_ALU_Narrowing_vx : {VX_TRACE_VALUES},
+  V_MUL_Widening_vv  : {VV_TRACE_VALUES},
+  V_MUL_Widening_vx  : {VX_TRACE_VALUES},
+  V_DIV_vv           : {VV_TRACE_VALUES},
+  V_DIV_vx           : {VX_TRACE_VALUES},
+  V_REDSUM           : {VV_TRACE_VALUES},
+  V_REDMINMAX        : {VV_TRACE_VALUES},
+  V_SLD              : {VX_TRACE_VALUES},
 
   V_vsetvl : {
     rs1 = "$bitfield{rs1}",
@@ -581,6 +642,7 @@ CorePerfModel Vicuna_zvl128b (
     vectorFixedDelayV1,
     vectorFixedDelayV2,
     vectorElmDelay,
+    vectorLSElmDelay,
     vectorDivDelay
   }
 )

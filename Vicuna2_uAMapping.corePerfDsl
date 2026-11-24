@@ -9,17 +9,27 @@ uA_WB_Nop
 uA_V_ID_Decode,           \
 uA_V_IQ_Queue,            \
 uA_V_DISP_Req_MaxVdGroup, \
+uA_V_DISP_Req_CommitSignal,     \
 uA_V_DISP_Dispatch
 
 #define uA_V_DEC_ID_DISP_WIDE_  \
 uA_V_ID_Decode,                 \
 uA_V_IQ_Queue,                  \
 uA_V_DISP_Req_MaxVdGroupWide,   \
+uA_V_DISP_Req_CommitSignal,     \
+uA_V_DISP_Dispatch
+
+#define uA_V_DEC_ID_DISP_NARROW_  \
+uA_V_ID_Decode,                   \
+uA_V_IQ_Queue,                    \
+uA_V_DISP_Req_MaxVdGroupNarrow,   \
+uA_V_DISP_Req_CommitSignal,       \
 uA_V_DISP_Dispatch
 
 #define uA_V_DEC_ID_DISP_NOWAW  \
 uA_V_ID_Decode,                 \
 uA_V_IQ_Queue,                  \
+uA_V_DISP_Req_CommitSignal,     \
 uA_V_DISP_Dispatch              \
 
 #define uA_V_ALU_   \
@@ -88,7 +98,7 @@ uA_V1_LSU_BUF_RESP
     uA_V2_Pack
   },
 
-  V_vmv_v_i : {
+  V_vmv_v_xi : {
     /* Scalar */
     uA_V_SCALAR_,
     /* Vector */
@@ -111,6 +121,19 @@ uA_V1_LSU_BUF_RESP
   },
 
   V_ALU_vv : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_,
+    // Batched
+    uA_V2_Unpack_Req_Vs1,
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
+  V_ALU_m : {
     /* Scalar */
     uA_V_SCALAR_,
     /* Vector */
@@ -214,6 +237,19 @@ uA_V1_LSU_BUF_RESP
     uA_V2_Pack
   },
 
+  V_ALU_Narrowing_vx : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NARROW_,
+    // Batched
+    // TODO: widening
+    uA_V2_Unpack_Req_Vs2,
+    uA_V2_Unpack_Fixed,
+    uA_V_ALU_,
+    uA_V2_Pack
+  },
+
   V_MUL_Widening_vx : {
     /* Scalar */
     uA_V_SCALAR_,
@@ -237,7 +273,7 @@ uA_V1_LSU_BUF_RESP
     uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_Fixed,
     uA_V2_REDSUM,
-    uA_V2_Pack
+    uA_V2_Pack_Final
   },
 
   V_REDMINMAX : {
@@ -250,7 +286,7 @@ uA_V1_LSU_BUF_RESP
     uA_V2_Unpack_Req_Vs2,
     uA_V2_Unpack_Fixed,
     uA_V2_REDMINMAX,
-    uA_V2_Pack
+    uA_V2_Pack_Final
   },
 
   V_INDEX : {
@@ -299,9 +335,26 @@ uA_V1_LSU_BUF_RESP
     uA_V_DISP_Dispatch,
     // Batched
     uA_V1_Unpack_Fixed,
-    uA_V1_LSU_MemAccess,
+    uA_V_LSU_,
     uA_V1_Pack_Write,
-    uA_V1_Pack_FreeWb
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
+  },
+
+  V_Load_Stride : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroupLoad,
+    uA_V_DISP_Dispatch,
+    // Batched
+    uA_V1_Unpack_Elements,
+    uA_V_LSU_,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
   },
 
   V_Load_Registers : {
@@ -316,7 +369,24 @@ uA_V1_LSU_BUF_RESP
     uA_V1_Unpack_Fixed,
     uA_V_LSU_,
     uA_V1_Pack_Write,
-    uA_V1_Pack_FreeWb
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
+  },
+
+  V_Load_Seg : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_ID_Decode,
+    uA_V_IQ_Queue,
+    uA_V_DISP_Req_MaxVdGroupNf,
+    uA_V_DISP_Dispatch,
+    // Batched
+    uA_V1_Unpack_Elements,
+    uA_V_LSU_,
+    uA_V1_Pack_Write,
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
   },
 
   V_Store : {
@@ -328,7 +398,21 @@ uA_V1_LSU_BUF_RESP
     uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_Fixed,
     uA_V_LSU_,
-    uA_V1_Pack_FreeWb
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
+  },
+
+  V_Store_Stride : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_Elements,
+    uA_V_LSU_,
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
   },
 
   V_Store_Registers : {
@@ -340,11 +424,27 @@ uA_V1_LSU_BUF_RESP
     uA_V1_Unpack_Req_Vs3,
     uA_V1_Unpack_Fixed,
     uA_V_LSU_,
-    uA_V1_Pack_FreeWb
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
+  },
+
+  V_Store_Index : {
+    /* Scalar */
+    uA_V_SCALAR_,
+    /* Vector */
+    uA_V_DEC_ID_DISP_NOWAW,
+    // Batched
+    uA_V1_Unpack_Req_Vs3,
+    uA_V1_Unpack_Req_Vs2,
+    uA_V1_Unpack_Elements,
+    uA_V_LSU_,
+    uA_V1_Pack_FreeWb,
+    uA_V1_Pack_Commit
   },
 
   V_vsetivli : {
     /* Scalar */
+    uA_ID_Vset,
     uA_V_SCALAR_,
     /* Vector */
     uA_V_ID_Decode
@@ -352,6 +452,7 @@ uA_V1_LSU_BUF_RESP
 
   V_vsetvli : {
     /* Scalar */
+    uA_ID_Vset,
     uA_V_SCALAR_,
     /* Vector */
     uA_V_ID_Decode
@@ -359,6 +460,7 @@ uA_V1_LSU_BUF_RESP
 
   V_vsetvl: {
     /* Scalar */
+    uA_ID_Vset,
     uA_V_SCALAR_,
     /* Vector */
     uA_V_ID_Decode
